@@ -7,6 +7,8 @@ html {
   padding: 0;
   width: 100%;
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 html,
@@ -22,14 +24,16 @@ body,
 
 body {
   font-family:
+    "DM Sans",
     Inter,
     "Segoe UI",
     Roboto,
     Arial,
     sans-serif;
-  background: #f5f8f6;
-  color: #17251e;
+  background: #f6f3ec;
+  color: #1e2f24;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
@@ -48,29 +52,44 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(23, 122, 78, 0.22);
+  outline: 2px solid rgba(61, 139, 78, 0.35);
   outline-offset: 2px;
 }
 
 input,
 select,
 textarea {
-  color: #1f2937;
-  background: #ffffff;
+  color: #1e2f24;
+  background: #fefcf7;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #6b7280;
+  color: #6e7d72;
   opacity: 1;
 }
 
 select option {
-  color: #1f2937;
-  background: #ffffff;
+  color: #1e2f24;
+  background: #fefcf7;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
+}
+
+/* Prevent iOS double-tap zoom on buttons */
+button {
+  touch-action: manipulation;
+}
+
+/* Improve select appearance on mobile */
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%236e7d72' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
 }

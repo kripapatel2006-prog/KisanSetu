@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
+import { getCropImage } from '../../data/cropCatalogData';
 
 /**
- * BUYER DISCOVERY & LOT DETAIL VIEW (SIH Feature 15, 16)
- * Dedicated buyer experience for finding verified produce lots.
+ * BUYER DISCOVERY & LOT DETAIL VIEW
+ * Dedicated buyer experience for finding verified produce lots using authentic crop photography.
  */
-export default function BuyerMarketplaceLotDetail({ formatCurrency }) {
+export default function BuyerMarketplaceLotDetail({ activeCrop, formatCurrency }) {
   const [selectedLot, setSelectedLot] = useState(null);
+  const currentCropName = activeCrop || "Groundnut";
 
   const produceLots = [
     {
       id: "KS-GN-2026-00124",
       crop: "Groundnut",
       quantity: 10,
-      grade: "Grade A",
+      grade: "Grade A (Farmer-Declared)",
       price: 6300,
       farmer: "Ramesh Kumar (Verified Farmer)",
       location: "Chevella, Telangana",
@@ -20,13 +22,13 @@ export default function BuyerMarketplaceLotDetail({ formatCurrency }) {
       harvestAge: "23 days ago",
       storage: "Farm Warehouse",
       confidence: 88,
-      img: "https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=600&q=80"
+      img: getCropImage("Groundnut")
     },
     {
       id: "KS-TM-2026-00381",
       crop: "Tomato",
       quantity: 15,
-      grade: "Premium A+",
+      grade: "Grade A (Farmer-Declared)",
       price: 2420,
       farmer: "Suresh Reddy",
       location: "Shamshabad, Telangana",
@@ -34,13 +36,13 @@ export default function BuyerMarketplaceLotDetail({ formatCurrency }) {
       harvestAge: "2 days ago",
       storage: "Fresh Picked",
       confidence: 94,
-      img: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80"
+      img: getCropImage("Tomato")
     },
     {
       id: "KS-RC-2026-00912",
-      crop: "Rice (Sona Masoori)",
+      crop: "Rice",
       quantity: 25,
-      grade: "Grade A",
+      grade: "Grade A (Farmer-Declared)",
       price: 2800,
       farmer: "Anitha Devi",
       location: "Warangal Hub",
@@ -48,7 +50,21 @@ export default function BuyerMarketplaceLotDetail({ formatCurrency }) {
       harvestAge: "45 days ago",
       storage: "State Warehouse",
       confidence: 91,
-      img: "https://images.unsplash.com/photo-1536657464919-892534f60d6e?auto=format&fit=crop&w=600&q=80"
+      img: getCropImage("Rice")
+    },
+    {
+      id: "KS-WT-2026-00714",
+      crop: "Wheat",
+      quantity: 20,
+      grade: "Grade A (Farmer-Declared)",
+      price: 2280,
+      farmer: "Harpreet Singh",
+      location: "Ludhiana Yard",
+      distance: "120 km",
+      harvestAge: "30 days ago",
+      storage: "Grain Elevator",
+      confidence: 85,
+      img: getCropImage("Wheat")
     }
   ];
 
@@ -56,7 +72,7 @@ export default function BuyerMarketplaceLotDetail({ formatCurrency }) {
     <div className="buyer-marketplace-container">
       <div className="buyer-hero-header">
         <span className="section-kicker">BUYER PROCUREMENT ENGINE</span>
-        <h2>Find Verified Produce Lots</h2>
+        <h2>Find Verified Produce Lots ({currentCropName} Focus)</h2>
         <p>Direct procurement from verified farmers with transparent harvest passports & escrow payment protection.</p>
       </div>
 
@@ -117,7 +133,7 @@ export default function BuyerMarketplaceLotDetail({ formatCurrency }) {
                   <div className="detail-row"><span>Harvest Age:</span> <strong>{selectedLot.harvestAge}</strong></div>
                   <div className="detail-row"><span>Storage Method:</span> <strong>{selectedLot.storage}</strong></div>
                   <div className="detail-row"><span>Quality Confidence:</span> <strong>{selectedLot.confidence}% Verified ✓</strong></div>
-                  <div className="detail-row"><span>Photos Attached:</span> <strong>3 Live Photos ✓</strong></div>
+                  <div className="detail-row"><span>Farmer Declaration:</span> <strong>{selectedLot.grade}</strong></div>
                 </div>
               </div>
 
@@ -142,4 +158,3 @@ export default function BuyerMarketplaceLotDetail({ formatCurrency }) {
     </div>
   );
 }
-

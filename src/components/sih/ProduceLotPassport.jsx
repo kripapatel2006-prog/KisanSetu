@@ -1,28 +1,31 @@
 import React, { useState } from 'react';
+import { getCropImage } from '../../data/cropCatalogData';
 
 /**
- * PRODUCE LOT & HARVEST/STORAGE PASSPORT (SIH Feature 1, 2, 3, 4)
- * Solves the real-world problem of produce age, moisture & storage decay.
- * Calculates Quality Confidence % transparently.
+ * PRODUCE LOT & HARVEST/STORAGE PASSPORT
+ * Dynamic harvest age passport using centralized crop photography.
  */
-export default function ProduceLotPassport({ crop, quantity, quality, location, onPassportUpdate }) {
+export default function ProduceLotPassport({ crop, quantity, quality, location, farmerPhotoUrl, onPassportUpdate }) {
   const [harvestDays, setHarvestDays] = useState(23);
   const [storageType, setStorageType] = useState("Farmer Storage");
   const [moisture, setMoisture] = useState("8.7");
   const [hasLabTest, setHasLabTest] = useState(false);
   const [pestStatus, setPestStatus] = useState("None Observed");
 
+  const cropName = crop || "Groundnut";
+  const cropImage = getCropImage(cropName, farmerPhotoUrl);
+
   // Generate Lot ID
-  const lotId = `KS-${crop.substring(0, 3).toUpperCase()}-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  const lotId = `KS-${cropName.substring(0, 3).toUpperCase()}-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
   // Determine Storage Passport Category
-  let passportBadge = { label: "FRESH", color: "green", desc: "Harvested within 30 days" };
+  let passportBadge = { label: "RECENTLY HARVESTED", color: "green", desc: "Harvested within 30 days" };
   if (harvestDays > 180) {
     passportBadge = { label: "QUALITY VERIFICATION RECOMMENDED", color: "red", desc: "Storage exceeds 6 months" };
   } else if (harvestDays > 90) {
     passportBadge = { label: "LONG STORED", color: "orange", desc: "Stored between 3-6 months" };
   } else if (harvestDays > 30) {
-    passportBadge = { label: "STORED", color: "yellow", desc: "Stored between 1-3 months" };
+    passportBadge = { label: "STORED PRODUCE", color: "yellow", desc: "Stored between 1-3 months" };
   }
 
   // Calculate Quality Confidence Score
@@ -34,10 +37,13 @@ export default function ProduceLotPassport({ crop, quantity, quality, location, 
   return (
     <div className="produce-passport-card">
       <div className="passport-header">
-        <div>
-          <span className="section-kicker">FEATURED PASSPORT</span>
-          <h3>Harvest & Storage Passport</h3>
-          <p className="lot-id-tag">LOT ID: <strong>{lotId}</strong></p>
+        <div className="passport-crop-media-title">
+          <img src={cropImage} alt={`Actual ${cropName} crop`} className="passport-crop-thumb" />
+          <div>
+            <span className="section-kicker">FEATURED PASSPORT</span>
+            <h3>{cropName} Harvest & Storage Passport</h3>
+            <p className="lot-id-tag">LOT ID: <strong>{lotId}</strong></p>
+          </div>
         </div>
         <div className={`passport-badge badge-${passportBadge.color}`}>
           <span>● {passportBadge.label}</span>
@@ -123,4 +129,3 @@ export default function ProduceLotPassport({ crop, quantity, quality, location, 
     </div>
   );
 }
-

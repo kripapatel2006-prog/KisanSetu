@@ -2245,6 +2245,8 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
             <FarmerDashboardDaily 
               farmerName={farmerProfile?.name}
               location={farmerProfile?.village}
+              activeCrop={crop}
+              quantity={quantity}
               onActionClick={(tab) => navigate(tab)}
               formatCurrency={formatCurrency}
             />
@@ -3131,7 +3133,7 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
 
       {activeTab === "buyers" && (
         <main className="page-container inner-page">
-          <BuyerMarketplaceLotDetail formatCurrency={formatCurrency} />
+          <BuyerMarketplaceLotDetail activeCrop={crop} formatCurrency={formatCurrency} />
 
           <div className="buyers-table">
             {matchedBuyers.map((buyer, index) => (

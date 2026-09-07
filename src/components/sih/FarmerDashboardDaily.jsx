@@ -1,38 +1,42 @@
 import React from 'react';
+import { getCropImage } from '../../data/cropCatalogData';
 
 /**
- * FARMER DAILY DASHBOARD ("WHAT SHOULD I DO TODAY?") (SIH Feature 8)
- * Uses real crop photography tiles and active order tracking cards.
+ * FARMER DAILY DASHBOARD ("WHAT SHOULD I DO TODAY?")
+ * Consumes single source of truth crop photography and active sale tracker.
  */
-export default function FarmerDashboardDaily({ farmerName, location, onActionClick, formatCurrency }) {
+export default function FarmerDashboardDaily({ farmerName, location, activeCrop, quantity, onActionClick, formatCurrency }) {
+  const currentCropName = activeCrop || "Groundnut";
+  const currentQty = quantity || 10;
+
   const cropTiles = [
     {
       name: "Groundnut",
       price: 6300,
       trend: "+6.4%",
       buyers: 18,
-      img: "https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=400&q=80"
+      img: getCropImage("Groundnut")
     },
     {
       name: "Tomato",
       price: 2420,
       trend: "+12.0%",
       buyers: 24,
-      img: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=400&q=80"
+      img: getCropImage("Tomato")
     },
     {
       name: "Wheat",
       price: 2280,
       trend: "+3.2%",
       buyers: 14,
-      img: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=400&q=80"
+      img: getCropImage("Wheat")
     },
     {
       name: "Rice",
       price: 2800,
       trend: "+4.1%",
       buyers: 20,
-      img: "https://images.unsplash.com/photo-1536657464919-892534f60d6e?auto=format&fit=crop&w=400&q=80"
+      img: getCropImage("Rice")
     }
   ];
 
@@ -42,7 +46,7 @@ export default function FarmerDashboardDaily({ farmerName, location, onActionCli
       <div className="dashboard-welcome-banner">
         <div>
           <h2>Good morning, {farmerName || 'Ramesh'} 🌾</h2>
-          <span className="location-pill">📍 {location || 'Chevella, Telangana'} · Region Hub</span>
+          <span className="location-pill">📍 {location || 'Chevella, Telangana'} · Regional Market Hub</span>
         </div>
         <div className="banner-date-badge">
           Today: {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -68,8 +72,8 @@ export default function FarmerDashboardDaily({ farmerName, location, onActionCli
       {/* Real Photography Crop Tiles */}
       <div className="crop-snapshot-section">
         <div className="snapshot-header">
-          <h3>Live Regional Market Snapshot</h3>
-          <span className="sub-tag">Real-time buyer demand near Chevella</span>
+          <h3>Market Snapshot (Regional Hub)</h3>
+          <span className="sub-tag">Illustrative Market Data near Chevella</span>
         </div>
 
         <div className="crop-tiles-grid">
@@ -90,28 +94,28 @@ export default function FarmerDashboardDaily({ farmerName, location, onActionCli
         </div>
       </div>
 
-      {/* Active Sale Tracker */}
+      {/* Active Sale Tracker - Synchronized with Single Source of Truth */}
       <div className="active-sale-card">
         <div className="sale-card-header">
           <div>
-            <span className="section-kicker">ACTIVE SALE IN PROGRESS</span>
-            <h3>Groundnut (Lot KS-GN-9402) · 10 Quintals</h3>
+            <span className="section-kicker">ACTIVE PRODUCE LOT</span>
+            <h3>{currentCropName} (Lot KS-2026-9402) · {currentQty} Quintals</h3>
           </div>
           <span className="status-badge-active">● Transport Assigned</span>
         </div>
 
         <div className="active-sale-details">
           <div>
-            <span>Buyer Name</span>
+            <span>Buyer Match</span>
             <strong>FreshKart Foods (18 km)</strong>
           </div>
           <div>
             <span>Expected Net Realisation</span>
-            <strong>{formatCurrency(63700)}</strong>
+            <strong>{formatCurrency(currentCropName === 'Tomato' ? 22160 : 63700)}</strong>
           </div>
           <div>
-            <span>Escrow Lock</span>
-            <strong className="positive">🔒 Verified & Locked</strong>
+            <span>Escrow Lock State</span>
+            <strong className="positive">🔒 Escrow Pending Transfer</strong>
           </div>
           <div>
             <span>Est. Pickup</span>
@@ -122,4 +126,3 @@ export default function FarmerDashboardDaily({ farmerName, location, onActionCli
     </div>
   );
 }
-

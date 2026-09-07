@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { getCropImage } from '../../data/cropCatalogData';
 
 /**
- * CATEGORIZED CROP CATALOG & FILTER (SIH Feature 17)
- * Expands crop identity into structured agricultural categories.
+ * CATEGORIZED CROP CATALOG & FILTER
+ * Uses single source of truth crop photography across all agricultural categories.
  */
 export default function CropCatalogFilter({ selectedCrop, onSelectCrop }) {
   const [activeCategory, setActiveCategory] = useState("ALL");
@@ -18,16 +19,16 @@ export default function CropCatalogFilter({ selectedCrop, onSelectCrop }) {
   ];
 
   const cropsCatalog = [
+    { name: "Groundnut", category: "OILSEEDS", market: "Chevella Market", region: "Telangana / AP" },
     { name: "Tomato", category: "VEGETABLES", market: "Chevella Market", region: "Telangana / AP" },
-    { name: "Onion", category: "VEGETABLES", market: "Nashik Hub", region: "Maharashtra" },
+    { name: "Onion", category: "VEGETABLES", market: "Nashik Yard", region: "Maharashtra" },
     { name: "Wheat", category: "CEREALS", market: "Ludhiana Market", region: "Punjab" },
-    { name: "Rice", category: "CEREALS", market: "Warangal Hub", region: "Telangana" },
+    { name: "Rice", category: "CEREALS", market: "Warangal Yard", region: "Telangana" },
     { name: "Cotton", category: "COMMERCIAL", market: "Nagpur Yard", region: "Maharashtra" },
     { name: "Turmeric", category: "COMMERCIAL", market: "Nizamabad Yard", region: "Telangana" },
-    { name: "Groundnut", category: "OILSEEDS", market: "Junagadh Hub", region: "Gujarat" },
     { name: "Coffee", category: "COMMERCIAL", market: "Chikmagalur Yard", region: "Karnataka" },
-    { name: "Moong (Green Gram)", category: "PULSES", market: "Latur Yard", region: "Maharashtra" },
-    { name: "Tur (Red Gram)", category: "PULSES", market: "Gulbarga Hub", region: "Karnataka" }
+    { name: "Green Gram (Moong)", category: "PULSES", market: "Latur Yard", region: "Maharashtra" },
+    { name: "Red Gram (Tur)", category: "PULSES", market: "Gulbarga Hub", region: "Karnataka" }
   ];
 
   const filteredCrops = cropsCatalog.filter((c) => {
@@ -66,7 +67,7 @@ export default function CropCatalogFilter({ selectedCrop, onSelectCrop }) {
         ))}
       </div>
 
-      {/* Filtered Grid */}
+      {/* Filtered Grid with Real Photography */}
       <div className="catalog-grid">
         {filteredCrops.map((item) => (
           <div 
@@ -74,12 +75,14 @@ export default function CropCatalogFilter({ selectedCrop, onSelectCrop }) {
             className={`catalog-item-box ${selectedCrop === item.name ? 'active-crop' : ''}`}
             onClick={() => onSelectCrop(item.name)}
           >
-            <strong>{item.name}</strong>
-            <small>📍 {item.market} ({item.region})</small>
+            <div className="catalog-item-photo" style={{ backgroundImage: `url(${getCropImage(item.name)})` }} />
+            <div className="catalog-item-details">
+              <strong>{item.name}</strong>
+              <small>📍 {item.market}</small>
+            </div>
           </div>
         ))}
       </div>
     </div>
   );
 }
-

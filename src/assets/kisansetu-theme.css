@@ -2530,6 +2530,46 @@ p {
 
 .voice-confirmation-actions button { flex: 1; }
 
+/* ---------------------------------------------------------
+   26. PASSPORT & CATALOG CROP MEDIA STYLES
+   --------------------------------------------------------- */
+.passport-crop-media-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.passport-crop-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--ks-radius-md);
+  object-fit: cover;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.catalog-item-photo {
+  height: 90px;
+  background-size: cover;
+  background-position: center;
+  border-radius: var(--ks-radius-sm);
+  margin-bottom: 10px;
+}
+
+.catalog-item-details strong {
+  display: block;
+  font-size: 14px;
+  color: var(--ks-forest);
+}
+
+.catalog-item-details small {
+  font-size: 11px;
+  color: var(--ks-muted);
+}
+
+
+.voice-confirmation-actions button { flex: 1; }
+
 
 
 

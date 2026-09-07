@@ -1,12 +1,14 @@
 import React from 'react';
+import { getCropImage } from '../../data/cropCatalogData';
 
 /**
- * HIGH-IMPACT HERO & ROLE SELECTION (SIH Feature 7, 9)
+ * HIGH-IMPACT HERO & ROLE SELECTION
  * Features real farm photography, glassmorphism floating cards,
- * and clear SIH value proposition: "Sell Smarter. Earn More. Move Your Produce."
+ * and clear value proposition: "Sell Smarter. Earn More. Move Your Produce."
  */
 export default function HighImpactHero({ onSelectRole, onAnalyseClick, formatCurrency }) {
   const farmPhotoUrl = "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1400&q=80";
+  const groundnutPhotoUrl = getCropImage("Groundnut");
 
   return (
     <div className="sih-hero-container" style={{ backgroundImage: `linear-gradient(180deg, rgba(18, 53, 36, 0.82) 0%, rgba(13, 40, 23, 0.92) 100%), url(${farmPhotoUrl})` }}>
@@ -44,7 +46,7 @@ export default function HighImpactHero({ onSelectRole, onAnalyseClick, formatCur
 
           <div className="hero-trust-row">
             <span>✓ 14,280+ Farmers Connected</span>
-            <span>✓ 98.2% Escrow Guarantee</span>
+            <span>✓ Prototype Escrow Security</span>
             <span>✓ Shared Freight Savings</span>
           </div>
         </div>
@@ -54,13 +56,13 @@ export default function HighImpactHero({ onSelectRole, onAnalyseClick, formatCur
           <div className="glass-decision-widget">
             <div className="widget-header">
               <span className="kicker-tag">TODAY'S NEXT BEST DECISION</span>
-              <span className="live-status-pill">● LIVE MARKET</span>
+              <span className="live-status-pill">● MARKET SNAPSHOT</span>
             </div>
 
             <div className="widget-crop-row">
               <img 
-                src="https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=200&q=80" 
-                alt="Groundnut Crop" 
+                src={groundnutPhotoUrl} 
+                alt="Actual Groundnut Pods" 
                 className="widget-crop-img"
               />
               <div>
@@ -102,4 +104,3 @@ export default function HighImpactHero({ onSelectRole, onAnalyseClick, formatCur
     </div>
   );
 }
-

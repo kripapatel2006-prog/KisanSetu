@@ -1,0 +1,2145 @@
+diff --git a/src/App.jsx b/src/App.jsx
+index 902c540..79e802b 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -1,5 +1,6 @@
+ import { useMemo, useState } from "react";
+ import "./assets/App.css";
++import AIAssistant from "./components/assistant/AIAssistant";
+ 
+ const crops = {
+   Tomato: { base: 2200, demand: 82, trend: 12, buyers: 18, region: "Telangana / Andhra Pradesh" },
+@@ -1922,6 +1923,8 @@ function App() {
+ 
+         </div>
+       </footer>
++
++      <AIAssistant language={language} defaultCrop={crop} />
+     </div>
+   );
+ }
+diff --git a/src/components/assistant/AIAssistant.jsx b/src/components/assistant/AIAssistant.jsx
+new file mode 100644
+index 0000000..cbea1d3
+--- /dev/null
++++ b/src/components/assistant/AIAssistant.jsx
+@@ -0,0 +1,334 @@
++import { useEffect, useMemo, useRef, useState } from "react";
++import {
++  Sparkles,
++  X,
++  Send,
++  MessageCircle,
++  Stethoscope,
++  LineChart,
++  Landmark,
++  WifiOff,
++} from "lucide-react";
++import VoiceRecorder, { speakText } from "./VoiceRecorder";
++import CropDiagnosis from "./CropDiagnosis";
++import MarketAdvisor from "./MarketAdvisor";
++import GovernmentAssistant from "./GovernmentAssistant";
++import {
++  ASSISTANT_TEXT,
++  CROP_LIST,
++  OFFLINE_FAQS,
++  findScheme,
++  matchCropFromText,
++  getMarketAdvice,
++} from "./assistantData";
++import "./assistant.css";
++
++const MEMORY_KEY = "kisansetu_ai_memory";
++const MAX_MESSAGES = 40;
++
++function loadMemory() {
++  try {
++    const raw = localStorage.getItem(MEMORY_KEY);
++    if (!raw) return { preferredCrop: null, recentQuestions: [], recentDiagnoses: [], messages: [] };
++    return JSON.parse(raw);
++  } catch {
++    return { preferredCrop: null, recentQuestions: [], recentDiagnoses: [], messages: [] };
++  }
++}
++
++function saveMemory(memory) {
++  try {
++    localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
++  } catch {
++    // localStorage unavailable — demo continues without persistence
++  }
++}
++
++const DISEASE_HINTS = /(disease|pest|sick|spot|yellow|wilt|curl|blight|infect)/i;
++const MARKET_HINTS = /(sell|price|rate|market|profit|worth)/i;
++
++export default function AIAssistant({ language = "en", defaultCrop }) {
++  const t = ASSISTANT_TEXT[language] || ASSISTANT_TEXT.en;
++
++  const [open, setOpen] = useState(false);
++  const [mode, setMode] = useState("chat");
++  const [input, setInput] = useState("");
++  const [online, setOnline] = useState(
++    typeof navigator === "undefined" ? true : navigator.onLine
++  );
++  const [memory, setMemory] = useState(loadMemory);
++  const [messages, setMessages] = useState(() => loadMemory().messages || []);
++  const [thinking, setThinking] = useState(false);
++
++  const scrollRef = useRef(null);
++  const lastInputWasVoice = useRef(false);
++
++  useEffect(() => {
++    const goOnline = () => setOnline(true);
++    const goOffline = () => setOnline(false);
++    window.addEventListener("online", goOnline);
++    window.addEventListener("offline", goOffline);
++    return () => {
++      window.removeEventListener("online", goOnline);
++      window.removeEventListener("offline", goOffline);
++    };
++  }, []);
++
++  useEffect(() => {
++    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
++  }, [messages, open, mode]);
++
++  const persist = (nextMemory, nextMessages) => {
++    const merged = { ...nextMemory, messages: nextMessages.slice(-MAX_MESSAGES) };
++    setMemory(merged);
++    saveMemory(merged);
++  };
++
++  const buildReply = async (text) => {
++    const scheme = findScheme(text);
++    if (scheme) {
++      return `${scheme.name}: ${scheme.summary} (${t.tabSchemes} → ${scheme.name})`;
++    }
++
++    const cropMatch = matchCropFromText(text);
++
++    if (MARKET_HINTS.test(text) || (cropMatch && !DISEASE_HINTS.test(text))) {
++      const crop = cropMatch || memory.preferredCrop || CROP_LIST[0];
++      const advice = await getMarketAdvice(crop);
++      const actionLabel =
++        advice.action === "SELL_NOW" ? t.sellNow : advice.action === "WAIT" ? t.wait : t.sellPartially;
++      return `${crop}: ${actionLabel} (${advice.confidence}% ${t.confidence.toLowerCase()}). ${advice.reasons[0]}`;
++    }
++
++    if (DISEASE_HINTS.test(text)) {
++      return `${t.tabDiagnose}: ${t.uploadPhoto} / ${t.takePhoto} — I can identify the issue from a photo.`;
++    }
++
++    return t.defaultReply;
++  };
++
++  const handleSend = async (rawText) => {
++    const text = (rawText ?? input).trim();
++    if (!text) return;
++
++    setInput("");
++
++    const userMsg = { role: "user", text, time: Date.now() };
++    const messagesWithUser = [...messages, userMsg];
++    setMessages(messagesWithUser);
++
++    const nextMemory = {
++      ...memory,
++      recentQuestions: [text, ...memory.recentQuestions.filter((q) => q !== text)].slice(0, 5),
++      preferredCrop: matchCropFromText(text) || memory.preferredCrop,
++    };
++    persist(nextMemory, messagesWithUser);
++
++    setThinking(true);
++    const reply = await buildReply(text);
++    setThinking(false);
++
++    const assistantMsg = { role: "assistant", text: reply, time: Date.now() };
++    const messagesWithReply = [...messagesWithUser, assistantMsg];
++    setMessages(messagesWithReply);
++    persist(nextMemory, messagesWithReply);
++
++    if (lastInputWasVoice.current) {
++      speakText(reply, language);
++      lastInputWasVoice.current = false;
++    }
++  };
++
++  const handleVoiceResult = (transcript) => {
++    lastInputWasVoice.current = true;
++    handleSend(transcript);
++  };
++
++  const handleDiagnosed = (diagnosis) => {
++    const nextMemory = {
++      ...memory,
++      recentDiagnoses: [
++        { crop: diagnosis.crop, name: diagnosis.name, at: diagnosis.diagnosedAt },
++        ...memory.recentDiagnoses,
++      ].slice(0, 5),
++      preferredCrop: diagnosis.crop,
++    };
++    persist(nextMemory, messages);
++  };
++
++  const handleAdvised = (advice) => {
++    const nextMemory = { ...memory, preferredCrop: advice.crop };
++    persist(nextMemory, messages);
++  };
++
++  const clearHistory = () => {
++    const fresh = { preferredCrop: null, recentQuestions: [], recentDiagnoses: [], messages: [] };
++    setMemory(fresh);
++    setMessages([]);
++    saveMemory(fresh);
++  };
++
++  const tabs = useMemo(
++    () => [
++      { id: "chat", label: t.tabChat, icon: MessageCircle },
++      { id: "diagnose", label: t.tabDiagnose, icon: Stethoscope },
++      { id: "market", label: t.tabMarket, icon: LineChart },
++      { id: "schemes", label: t.tabSchemes, icon: Landmark },
++    ],
++    [t]
++  );
++
++  const offlineFaqs = OFFLINE_FAQS[language] || OFFLINE_FAQS.en;
++
++  return (
++    <>
++      <button
++        type="button"
++        className="ai-fab"
++        onClick={() => setOpen((v) => !v)}
++        aria-label={t.openAssistant}
++        title={t.openAssistant}
++      >
++        <Sparkles size={22} />
++      </button>
++
++      {open && (
++        <div className="ai-panel">
++          <div className="ai-panel-header">
++            <div>
++              <h3>{t.assistantTitle}</h3>
++              <p>{t.assistantSubtitle}</p>
++            </div>
++            <button
++              type="button"
++              className="ai-panel-close"
++              onClick={() => setOpen(false)}
++              aria-label={t.close}
++            >
++              <X size={18} />
++            </button>
++          </div>
++
++          {!online && (
++            <div className="ai-offline-banner">
++              <WifiOff size={14} />
++              <span>
++                <strong>{t.offlineBanner}.</strong> {t.offlineNote}
++              </span>
++            </div>
++          )}
++
++          <div className="ai-tabs">
++            {tabs.map((tab) => {
++              const Icon = tab.icon;
++              return (
++                <button
++                  key={tab.id}
++                  type="button"
++                  className={mode === tab.id ? "active" : ""}
++                  onClick={() => setMode(tab.id)}
++                >
++                  <Icon size={15} />
++                  {tab.label}
++                </button>
++              );
++            })}
++          </div>
++
++          <div className="ai-panel-body">
++            {mode === "chat" && (
++              <div className="assistant-panel chat-panel">
++                <div className="chat-messages" ref={scrollRef}>
++                  {messages.length === 0 && (
++                    <>
++                      <div className="chat-bubble assistant">{t.greeting}</div>
++
++                      {memory.recentQuestions.length > 0 && (
++                        <div className="chat-recent">
++                          <span>{t.recentQuestions}</span>
++                          {memory.recentQuestions.map((q, i) => (
++                            <button key={i} onClick={() => handleSend(q)}>
++                              {q}
++                            </button>
++                          ))}
++                        </div>
++                      )}
++
++                      {!online && (
++                        <div className="chat-faq">
++                          <span>{t.faqTitle}</span>
++                          {offlineFaqs.map((f, i) => (
++                            <div key={i} className="chat-faq-item">
++                              <strong>{f.q}</strong>
++                              <p>{f.a}</p>
++                            </div>
++                          ))}
++                        </div>
++                      )}
++                    </>
++                  )}
++
++                  {messages.map((m, i) => (
++                    <div key={i} className={`chat-bubble ${m.role}`}>
++                      {m.text}
++                    </div>
++                  ))}
++
++                  {thinking && <div className="chat-bubble assistant typing">...</div>}
++                </div>
++
++                <div className="chat-input-row">
++                  <VoiceRecorder
++                    language={language}
++                    t={t}
++                    onResult={handleVoiceResult}
++                    disabled={!online && false}
++                  />
++                  <input
++                    type="text"
++                    value={input}
++                    placeholder={t.chatPlaceholder}
++                    onChange={(e) => setInput(e.target.value)}
++                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
++                  />
++                  <button
++                    type="button"
++                    className="chat-send-btn"
++                    onClick={() => handleSend()}
++                    aria-label={t.chatSend}
++                  >
++                    <Send size={16} />
++                  </button>
++                </div>
++
++                {messages.length > 0 && (
++                  <button type="button" className="clear-history-btn" onClick={clearHistory}>
++                    {t.clearHistory}
++                  </button>
++                )}
++              </div>
++            )}
++
++            {mode === "diagnose" && (
++              <CropDiagnosis
++                t={t}
++                defaultCrop={memory.preferredCrop || defaultCrop}
++                onDiagnosed={handleDiagnosed}
++              />
++            )}
++
++            {mode === "market" && (
++              <MarketAdvisor
++                t={t}
++                defaultCrop={memory.preferredCrop || defaultCrop}
++                onAdvised={handleAdvised}
++              />
++            )}
++
++            {mode === "schemes" && <GovernmentAssistant t={t} />}
++          </div>
++        </div>
++      )}
++    </>
++  );
++}
+diff --git a/src/components/assistant/CropDiagnosis.jsx b/src/components/assistant/CropDiagnosis.jsx
+new file mode 100644
+index 0000000..8a9f282
+--- /dev/null
++++ b/src/components/assistant/CropDiagnosis.jsx
+@@ -0,0 +1,184 @@
++import { useRef, useState } from "react";
++import {
++  Camera,
++  Upload,
++  Loader2,
++  AlertTriangle,
++  Sparkles,
++} from "lucide-react";
++import { CROP_LIST, diagnoseCrop } from "./assistantData";
++
++export default function CropDiagnosis({ t, defaultCrop, onDiagnosed }) {
++  const [crop, setCrop] = useState(defaultCrop || CROP_LIST[0]);
++  const [photo, setPhoto] = useState(null);
++  const [analyzing, setAnalyzing] = useState(false);
++  const [result, setResult] = useState(null);
++
++  const fileInputRef = useRef(null);
++  const cameraInputRef = useRef(null);
++
++  const handleFile = (e) => {
++    const file = e.target.files && e.target.files[0];
++    if (!file) return;
++
++    if (photo?.url) URL.revokeObjectURL(photo.url);
++    setPhoto({ url: URL.createObjectURL(file), file });
++    setResult(null);
++  };
++
++  const runDiagnosis = async () => {
++    if (!photo) return;
++    setAnalyzing(true);
++    const diagnosis = await diagnoseCrop(crop, photo.file);
++    setAnalyzing(false);
++    setResult(diagnosis);
++    onDiagnosed?.(diagnosis);
++  };
++
++  const severityClass = (severity) =>
++    severity === "High"
++      ? "severity-high"
++      : severity === "Medium"
++      ? "severity-medium"
++      : "severity-low";
++
++  return (
++    <div className="assistant-panel diagnosis-panel">
++      <div className="diagnosis-crop-select">
++        <label>{t.selectCrop}</label>
++        <select value={crop} onChange={(e) => setCrop(e.target.value)}>
++          {CROP_LIST.map((c) => (
++            <option key={c} value={c}>
++              {c}
++            </option>
++          ))}
++        </select>
++      </div>
++
++      {photo ? (
++        <div className="diagnosis-preview">
++          <img src={photo.url} alt={crop} />
++        </div>
++      ) : (
++        <div className="diagnosis-empty">
++          <Camera size={28} />
++        </div>
++      )}
++
++      <div className="diagnosis-actions">
++        <button
++          type="button"
++          className="secondary-button"
++          onClick={() => cameraInputRef.current?.click()}
++        >
++          <Camera size={16} />
++          {t.takePhoto}
++        </button>
++
++        <button
++          type="button"
++          className="secondary-button"
++          onClick={() => fileInputRef.current?.click()}
++        >
++          <Upload size={16} />
++          {t.uploadPhoto}
++        </button>
++
++        <input
++          ref={cameraInputRef}
++          type="file"
++          accept="image/*"
++          capture="environment"
++          hidden
++          onChange={handleFile}
++        />
++        <input
++          ref={fileInputRef}
++          type="file"
++          accept="image/*"
++          hidden
++          onChange={handleFile}
++        />
++      </div>
++
++      <button
++        type="button"
++        className="primary-button diagnosis-analyze-btn"
++        disabled={!photo || analyzing}
++        onClick={runDiagnosis}
++      >
++        {analyzing ? (
++          <>
++            <Loader2 size={16} className="spin" />
++            {t.analyzing}
++          </>
++        ) : (
++          <>
++            <Sparkles size={16} />
++            {t.analyzeCrop}
++          </>
++        )}
++      </button>
++
++      {result && (
++        <div className="diagnosis-result">
++          <div className="diagnosis-result-header">
++            <span className="demo-badge">{t.demoAiLabel}</span>
++            <span className={`severity-pill ${severityClass(result.severity)}`}>
++              <AlertTriangle size={12} />
++              {result.severity}
++            </span>
++          </div>
++
++          <h4>{result.name}</h4>
++
++          <div className="confidence-bar">
++            <div
++              className="confidence-bar-fill"
++              style={{ width: `${result.confidence}%` }}
++            />
++            <span>
++              {t.confidence}: {result.confidence}%
++            </span>
++          </div>
++
++          <div className="diagnosis-detail">
++            <h5>{t.symptoms}</h5>
++            <ul>
++              {result.symptoms.map((s, i) => (
++                <li key={i}>{s}</li>
++              ))}
++            </ul>
++          </div>
++
++          <div className="diagnosis-detail">
++            <h5>{t.causes}</h5>
++            <ul>
++              {result.causes.map((c, i) => (
++                <li key={i}>{c}</li>
++              ))}
++            </ul>
++          </div>
++
++          <div className="diagnosis-detail">
++            <h5>{t.treatment}</h5>
++            <ul>
++              {result.treatment.map((tr, i) => (
++                <li key={i}>{tr}</li>
++              ))}
++            </ul>
++          </div>
++
++          <div className="diagnosis-detail">
++            <h5>{t.prevention}</h5>
++            <ul>
++              {result.prevention.map((p, i) => (
++                <li key={i}>{p}</li>
++              ))}
++            </ul>
++          </div>
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/src/components/assistant/GovernmentAssistant.jsx b/src/components/assistant/GovernmentAssistant.jsx
+new file mode 100644
+index 0000000..ff1eb24
+--- /dev/null
++++ b/src/components/assistant/GovernmentAssistant.jsx
+@@ -0,0 +1,92 @@
++import { useState } from "react";
++import { Search, ExternalLink, Landmark } from "lucide-react";
++import { GOV_SCHEMES, findScheme } from "./assistantData";
++
++export default function GovernmentAssistant({ t }) {
++  const [query, setQuery] = useState("");
++  const [selected, setSelected] = useState(null);
++
++  const handleSearch = () => {
++    const match = findScheme(query);
++    setSelected(match || null);
++  };
++
++  return (
++    <div className="assistant-panel schemes-panel">
++      <h4 className="panel-heading">
++        <Landmark size={16} />
++        {t.schemesTitle}
++      </h4>
++
++      <div className="market-query-row">
++        <input
++          type="text"
++          value={query}
++          placeholder={t.schemesPlaceholder}
++          onChange={(e) => setQuery(e.target.value)}
++          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
++        />
++        <button type="button" className="primary-button" onClick={handleSearch}>
++          <Search size={16} />
++        </button>
++      </div>
++
++      <div className="scheme-chip-row">
++        {GOV_SCHEMES.map((s) => (
++          <button
++            key={s.id}
++            type="button"
++            className={`scheme-chip ${selected?.id === s.id ? "active" : ""}`}
++            onClick={() => setSelected(s)}
++          >
++            {s.name}
++          </button>
++        ))}
++      </div>
++
++      {selected && (
++        <div className="scheme-detail">
++          <h4>{selected.name}</h4>
++          <p>{selected.summary}</p>
++
++          <div className="diagnosis-detail">
++            <h5>{t.eligibility}</h5>
++            <ul>
++              {selected.eligibility.map((e, i) => (
++                <li key={i}>{e}</li>
++              ))}
++            </ul>
++          </div>
++
++          <div className="diagnosis-detail">
++            <h5>{t.benefits}</h5>
++            <ul>
++              {selected.benefits.map((b, i) => (
++                <li key={i}>{b}</li>
++              ))}
++            </ul>
++          </div>
++
++          <div className="diagnosis-detail">
++            <h5>{t.howToApply}</h5>
++            <ul>
++              {selected.howToApply.map((h, i) => (
++                <li key={i}>{h}</li>
++              ))}
++            </ul>
++          </div>
++
++          <a
++            className="scheme-official-link"
++            href={selected.link}
++            target="_blank"
++            rel="noreferrer"
++          >
++            <ExternalLink size={14} />
++            {t.officialLink}
++          </a>
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/src/components/assistant/MarketAdvisor.jsx b/src/components/assistant/MarketAdvisor.jsx
+new file mode 100644
+index 0000000..ff16248
+--- /dev/null
++++ b/src/components/assistant/MarketAdvisor.jsx
+@@ -0,0 +1,109 @@
++import { useState } from "react";
++import { TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-react";
++import { CROP_LIST, matchCropFromText, getMarketAdvice } from "./assistantData";
++
++const ACTION_META = {
++  SELL_NOW: { icon: TrendingDown, key: "sellNow", className: "action-sell" },
++  WAIT: { icon: TrendingUp, key: "wait", className: "action-wait" },
++  SELL_PARTIALLY: { icon: Minus, key: "sellPartially", className: "action-partial" },
++};
++
++export default function MarketAdvisor({ t, defaultCrop, onAdvised }) {
++  const [query, setQuery] = useState(
++    defaultCrop ? `Should I sell ${defaultCrop.toLowerCase()} today?` : ""
++  );
++  const [crop, setCrop] = useState(defaultCrop || CROP_LIST[0]);
++  const [loading, setLoading] = useState(false);
++  const [advice, setAdvice] = useState(null);
++
++  const handleAsk = async () => {
++    const matched = matchCropFromText(query) || crop;
++    setCrop(matched);
++    setLoading(true);
++    const result = await getMarketAdvice(matched);
++    setLoading(false);
++    setAdvice(result);
++    onAdvised?.(result);
++  };
++
++  const meta = advice ? ACTION_META[advice.action] : null;
++  const ActionIcon = meta?.icon;
++
++  return (
++    <div className="assistant-panel market-panel">
++      <div className="market-query-row">
++        <input
++          type="text"
++          value={query}
++          placeholder={t.askMarketPlaceholder}
++          onChange={(e) => setQuery(e.target.value)}
++          onKeyDown={(e) => e.key === "Enter" && handleAsk()}
++        />
++        <button
++          type="button"
++          className="primary-button"
++          onClick={handleAsk}
++          disabled={loading}
++        >
++          {loading ? <Loader2 size={16} className="spin" /> : t.getAdvice}
++        </button>
++      </div>
++
++      <div className="market-crop-select">
++        <label>{t.selectCrop}</label>
++        <select value={crop} onChange={(e) => setCrop(e.target.value)}>
++          {CROP_LIST.map((c) => (
++            <option key={c} value={c}>
++              {c}
++            </option>
++          ))}
++        </select>
++      </div>
++
++      {advice && (
++        <div className="market-result">
++          <span className="demo-badge">{t.demoMarketLabel}</span>
++
++          <div className={`market-action-pill ${meta.className}`}>
++            {ActionIcon && <ActionIcon size={16} />}
++            {t[meta.key]}
++          </div>
++
++          <div className="confidence-bar">
++            <div
++              className="confidence-bar-fill"
++              style={{ width: `${advice.confidence}%` }}
++            />
++            <span>
++              {t.confidence}: {advice.confidence}%
++            </span>
++          </div>
++
++          <div className="market-stats">
++            <div>
++              <span>₹{advice.currentPrice}</span>
++              <small>/quintal</small>
++            </div>
++            <div>
++              <span>{advice.trend > 0 ? "+" : ""}{advice.trend}%</span>
++              <small>trend</small>
++            </div>
++            <div>
++              <span>{advice.demand}</span>
++              <small>demand</small>
++            </div>
++          </div>
++
++          <div className="diagnosis-detail">
++            <h5>{t.marketReasoning}</h5>
++            <ul>
++              {advice.reasons.map((r, i) => (
++                <li key={i}>{r}</li>
++              ))}
++            </ul>
++          </div>
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/src/components/assistant/VoiceRecorder.jsx b/src/components/assistant/VoiceRecorder.jsx
+new file mode 100644
+index 0000000..19e3dfd
+--- /dev/null
++++ b/src/components/assistant/VoiceRecorder.jsx
+@@ -0,0 +1,124 @@
++import { useEffect, useRef, useState } from "react";
++import { Mic, MicOff } from "lucide-react";
++import { SPEECH_LOCALE } from "./assistantData";
++
++// Wraps the browser's Web Speech API for speech-to-text, with a clearly
++// disabled state when it isn't available. Also exposes a small helper to
++// speak text back (speechSynthesis) for text-to-speech replies.
++export default function VoiceRecorder({ language, t, onResult, disabled }) {
++  const [listening, setListening] = useState(false);
++  const [interim, setInterim] = useState("");
++  const recognitionRef = useRef(null);
++
++  const SpeechRecognitionImpl =
++    typeof window !== "undefined" &&
++    (window.SpeechRecognition || window.webkitSpeechRecognition);
++
++  const supported = Boolean(SpeechRecognitionImpl);
++
++  useEffect(() => {
++    return () => {
++      recognitionRef.current?.stop?.();
++    };
++  }, []);
++
++  const startListening = () => {
++    if (!supported || disabled) return;
++
++    const recognition = new SpeechRecognitionImpl();
++    recognition.lang = SPEECH_LOCALE[language] || "en-IN";
++    recognition.interimResults = true;
++    recognition.continuous = false;
++    recognition.maxAlternatives = 1;
++
++    recognition.onstart = () => setListening(true);
++    recognition.onerror = () => setListening(false);
++    recognition.onend = () => {
++      setListening(false);
++      setInterim("");
++    };
++
++    recognition.onresult = (event) => {
++      let finalText = "";
++      let interimText = "";
++
++      for (let i = event.resultIndex; i < event.results.length; i++) {
++        const transcript = event.results[i][0].transcript;
++        if (event.results[i].isFinal) {
++          finalText += transcript;
++        } else {
++          interimText += transcript;
++        }
++      }
++
++      if (interimText) setInterim(interimText);
++      if (finalText) {
++        setInterim("");
++        onResult?.(finalText.trim());
++        recognition.stop();
++      }
++    };
++
++    recognitionRef.current = recognition;
++    recognition.start();
++  };
++
++  const stopListening = () => {
++    recognitionRef.current?.stop?.();
++    setListening(false);
++  };
++
++  if (!supported) {
++    return (
++      <div className="voice-recorder voice-unsupported" title={t.micNotSupported}>
++        <MicOff size={16} />
++        <span>{t.micNotSupported}</span>
++      </div>
++    );
++  }
++
++  return (
++    <div className="voice-recorder">
++      <button
++        type="button"
++        className={`mic-button ${listening ? "listening" : ""}`}
++        onClick={listening ? stopListening : startListening}
++        disabled={disabled}
++        aria-label={listening ? t.micListening : t.micStart}
++        title={listening ? t.micListening : t.micStart}
++      >
++        <Mic size={18} />
++      </button>
++
++      {listening && (
++        <div className="mic-waveform" aria-hidden="true">
++          <span />
++          <span />
++          <span />
++          <span />
++          <span />
++        </div>
++      )}
++
++      {listening && (
++        <span className="mic-status">{interim || t.micListening}</span>
++      )}
++    </div>
++  );
++}
++
++// Simple text-to-speech helper. Falls back to a no-op if unsupported.
++export function speakText(text, language) {
++  if (typeof window === "undefined" || !window.speechSynthesis) return;
++
++  window.speechSynthesis.cancel();
++
++  const utterance = new SpeechSynthesisUtterance(text);
++  utterance.lang = SPEECH_LOCALE[language] || "en-IN";
++
++  const voices = window.speechSynthesis.getVoices();
++  const match = voices.find((v) => v.lang === utterance.lang);
++  if (match) utterance.voice = match;
++
++  window.speechSynthesis.speak(utterance);
++}
+diff --git a/src/components/assistant/assistant.css b/src/components/assistant/assistant.css
+new file mode 100644
+index 0000000..589f215
+--- /dev/null
++++ b/src/components/assistant/assistant.css
+@@ -0,0 +1,642 @@
++/* AI Kisan Assistant — scoped styles.
++   Reuses the app's existing design tokens (--forest, --wheat, --terracotta,
++   --cream, --shadow-*, --radius-*) defined in src/assets/App.css so the
++   assistant matches the rest of KisanSetu without redefining a palette. */
++
++.ai-fab {
++  position: fixed;
++  bottom: 22px;
++  right: 22px;
++  width: 58px;
++  height: 58px;
++  border-radius: 50%;
++  border: none;
++  background: linear-gradient(135deg, var(--forest), var(--forest-dark));
++  color: var(--wheat-light);
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  box-shadow: var(--shadow-lg);
++  z-index: 9999;
++  transition: transform 0.2s ease, box-shadow 0.2s ease;
++}
++
++.ai-fab:hover {
++  transform: translateY(-2px) scale(1.04);
++}
++
++.ai-fab::after {
++  content: "";
++  position: absolute;
++  inset: -6px;
++  border-radius: 50%;
++  border: 2px solid rgba(216, 181, 106, 0.45);
++  animation: ai-fab-pulse 2.4s ease-out infinite;
++}
++
++@keyframes ai-fab-pulse {
++  0% { transform: scale(0.9); opacity: 0.8; }
++  70% { transform: scale(1.25); opacity: 0; }
++  100% { opacity: 0; }
++}
++
++.ai-panel {
++  position: fixed;
++  bottom: 92px;
++  right: 22px;
++  width: 380px;
++  max-height: 620px;
++  background: var(--white);
++  border: 1px solid var(--border);
++  border-radius: var(--radius-lg);
++  box-shadow: var(--shadow-lg);
++  display: flex;
++  flex-direction: column;
++  overflow: hidden;
++  z-index: 9999;
++  font-size: 14px;
++}
++
++.ai-panel-header {
++  background: linear-gradient(135deg, var(--forest), var(--forest-deep));
++  color: var(--white);
++  padding: 16px 18px;
++  display: flex;
++  align-items: flex-start;
++  justify-content: space-between;
++}
++
++.ai-panel-header h3 {
++  margin: 0;
++  font-size: 16px;
++}
++
++.ai-panel-header p {
++  margin: 2px 0 0;
++  font-size: 12px;
++  color: var(--sage);
++}
++
++.ai-panel-close {
++  background: rgba(255, 255, 255, 0.12);
++  border: none;
++  border-radius: 50%;
++  width: 28px;
++  height: 28px;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  color: var(--white);
++  flex-shrink: 0;
++}
++
++.ai-offline-banner {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  background: var(--wheat-light);
++  color: var(--forest-deep);
++  padding: 8px 14px;
++  font-size: 12px;
++  border-bottom: 1px solid var(--border);
++}
++
++.ai-tabs {
++  display: flex;
++  border-bottom: 1px solid var(--border);
++  background: var(--cream);
++}
++
++.ai-tabs button {
++  flex: 1;
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++  gap: 3px;
++  padding: 9px 4px;
++  background: none;
++  border: none;
++  color: var(--muted);
++  font-size: 10.5px;
++  font-weight: 600;
++  border-bottom: 2px solid transparent;
++}
++
++.ai-tabs button.active {
++  color: var(--forest);
++  border-bottom-color: var(--forest);
++  background: var(--green-light);
++}
++
++.ai-panel-body {
++  flex: 1;
++  overflow-y: auto;
++  display: flex;
++}
++
++.assistant-panel {
++  width: 100%;
++  padding: 14px;
++  display: flex;
++  flex-direction: column;
++  gap: 10px;
++}
++
++/* Chat */
++.chat-panel {
++  padding: 0;
++}
++
++.chat-messages {
++  flex: 1;
++  overflow-y: auto;
++  padding: 14px;
++  display: flex;
++  flex-direction: column;
++  gap: 8px;
++  min-height: 220px;
++  max-height: 380px;
++}
++
++.chat-bubble {
++  max-width: 85%;
++  padding: 9px 12px;
++  border-radius: var(--radius-md);
++  line-height: 1.4;
++  font-size: 13px;
++}
++
++.chat-bubble.assistant {
++  align-self: flex-start;
++  background: var(--green-light);
++  color: var(--forest-deep);
++  border-bottom-left-radius: 4px;
++}
++
++.chat-bubble.user {
++  align-self: flex-end;
++  background: var(--forest);
++  color: var(--white);
++  border-bottom-right-radius: 4px;
++}
++
++.chat-bubble.typing {
++  font-weight: 700;
++  letter-spacing: 2px;
++}
++
++.chat-recent {
++  display: flex;
++  flex-direction: column;
++  gap: 6px;
++  margin-top: 4px;
++}
++
++.chat-recent span,
++.chat-faq span {
++  font-size: 11px;
++  font-weight: 700;
++  color: var(--muted);
++  text-transform: uppercase;
++  letter-spacing: 0.4px;
++}
++
++.chat-recent button {
++  text-align: left;
++  background: var(--cream);
++  border: 1px solid var(--border);
++  border-radius: var(--radius-sm);
++  padding: 7px 10px;
++  font-size: 12px;
++  color: var(--charcoal);
++}
++
++.chat-faq {
++  margin-top: 10px;
++  display: flex;
++  flex-direction: column;
++  gap: 8px;
++}
++
++.chat-faq-item {
++  background: var(--cream);
++  border: 1px solid var(--border);
++  border-radius: var(--radius-sm);
++  padding: 8px 10px;
++}
++
++.chat-faq-item strong {
++  display: block;
++  font-size: 12px;
++  color: var(--forest-deep);
++}
++
++.chat-faq-item p {
++  margin: 3px 0 0;
++  font-size: 11.5px;
++  color: var(--muted);
++}
++
++.chat-input-row {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  padding: 10px 14px;
++  border-top: 1px solid var(--border);
++}
++
++.chat-input-row input {
++  flex: 1;
++  border: 1.5px solid var(--border);
++  border-radius: var(--radius-sm);
++  padding: 8px 10px;
++  font-size: 13px;
++}
++
++.chat-send-btn {
++  background: var(--forest);
++  color: var(--white);
++  border: none;
++  border-radius: 50%;
++  width: 34px;
++  height: 34px;
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  flex-shrink: 0;
++}
++
++.clear-history-btn {
++  align-self: center;
++  margin: 0 0 10px;
++  background: none;
++  border: none;
++  color: var(--muted);
++  font-size: 11px;
++  text-decoration: underline;
++}
++
++/* Voice recorder */
++.voice-recorder {
++  display: flex;
++  align-items: center;
++  gap: 6px;
++  flex-shrink: 0;
++}
++
++.mic-button {
++  width: 34px;
++  height: 34px;
++  border-radius: 50%;
++  border: 1.5px solid var(--border);
++  background: var(--cream);
++  color: var(--forest);
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  flex-shrink: 0;
++}
++
++.mic-button.listening {
++  background: var(--terracotta);
++  border-color: var(--terracotta);
++  color: var(--white);
++}
++
++.mic-waveform {
++  display: flex;
++  align-items: center;
++  gap: 2px;
++  height: 18px;
++}
++
++.mic-waveform span {
++  width: 3px;
++  border-radius: 2px;
++  background: var(--terracotta);
++  animation: ai-wave 0.9s ease-in-out infinite;
++}
++
++.mic-waveform span:nth-child(1) { height: 6px; animation-delay: 0s; }
++.mic-waveform span:nth-child(2) { height: 14px; animation-delay: 0.1s; }
++.mic-waveform span:nth-child(3) { height: 18px; animation-delay: 0.2s; }
++.mic-waveform span:nth-child(4) { height: 12px; animation-delay: 0.3s; }
++.mic-waveform span:nth-child(5) { height: 8px; animation-delay: 0.4s; }
++
++@keyframes ai-wave {
++  0%, 100% { transform: scaleY(0.5); }
++  50% { transform: scaleY(1); }
++}
++
++.mic-status {
++  font-size: 11px;
++  color: var(--muted);
++  white-space: nowrap;
++  overflow: hidden;
++  text-overflow: ellipsis;
++  max-width: 110px;
++}
++
++.voice-unsupported {
++  display: flex;
++  align-items: center;
++  gap: 5px;
++  font-size: 10px;
++  color: var(--muted);
++  max-width: 90px;
++}
++
++/* Diagnose / Market shared bits */
++.diagnosis-crop-select,
++.market-crop-select {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 8px;
++}
++
++.diagnosis-crop-select label,
++.market-crop-select label {
++  font-size: 12px;
++  color: var(--muted);
++  font-weight: 600;
++}
++
++.diagnosis-crop-select select,
++.market-crop-select select {
++  border: 1.5px solid var(--border);
++  border-radius: var(--radius-sm);
++  padding: 6px 8px;
++  font-size: 12px;
++}
++
++.diagnosis-preview {
++  border-radius: var(--radius-md);
++  overflow: hidden;
++  max-height: 160px;
++  border: 1px solid var(--border);
++}
++
++.diagnosis-preview img {
++  width: 100%;
++  max-height: 160px;
++  object-fit: cover;
++  display: block;
++}
++
++.diagnosis-empty {
++  height: 120px;
++  border: 1.5px dashed var(--border);
++  border-radius: var(--radius-md);
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  color: var(--sage);
++  background: var(--cream);
++}
++
++.diagnosis-actions {
++  display: flex;
++  gap: 8px;
++}
++
++.diagnosis-actions .secondary-button {
++  flex: 1;
++  justify-content: center;
++  font-size: 12px;
++  padding: 8px;
++  display: flex;
++  align-items: center;
++  gap: 6px;
++}
++
++.diagnosis-analyze-btn {
++  width: 100%;
++  justify-content: center;
++  display: flex;
++  align-items: center;
++  gap: 6px;
++  font-size: 13px;
++}
++
++.spin {
++  animation: ai-spin 0.9s linear infinite;
++}
++
++@keyframes ai-spin {
++  from { transform: rotate(0deg); }
++  to { transform: rotate(360deg); }
++}
++
++.demo-badge {
++  display: inline-block;
++  background: var(--terracotta-light);
++  color: var(--terracotta);
++  font-size: 10px;
++  font-weight: 700;
++  letter-spacing: 0.3px;
++  text-transform: uppercase;
++  padding: 3px 8px;
++  border-radius: 999px;
++}
++
++.diagnosis-result,
++.market-result,
++.scheme-detail {
++  border-top: 1px solid var(--border);
++  padding-top: 10px;
++  display: flex;
++  flex-direction: column;
++  gap: 8px;
++}
++
++.diagnosis-result-header {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++}
++
++.severity-pill {
++  display: inline-flex;
++  align-items: center;
++  gap: 4px;
++  font-size: 10.5px;
++  font-weight: 700;
++  padding: 3px 8px;
++  border-radius: 999px;
++}
++
++.severity-high { background: var(--terracotta-light); color: var(--terracotta); }
++.severity-medium { background: var(--wheat-light); color: #8a6a1f; }
++.severity-low { background: var(--green-light); color: var(--forest); }
++
++.confidence-bar {
++  position: relative;
++  height: 20px;
++  background: var(--border);
++  border-radius: 999px;
++  overflow: hidden;
++}
++
++.confidence-bar-fill {
++  position: absolute;
++  inset: 0;
++  background: var(--green);
++  border-radius: 999px;
++}
++
++.confidence-bar span {
++  position: relative;
++  z-index: 1;
++  display: flex;
++  height: 100%;
++  align-items: center;
++  justify-content: center;
++  font-size: 10.5px;
++  font-weight: 700;
++  color: var(--forest-deep);
++}
++
++.diagnosis-detail h5 {
++  margin: 0 0 4px;
++  font-size: 11.5px;
++  text-transform: uppercase;
++  letter-spacing: 0.3px;
++  color: var(--muted);
++}
++
++.diagnosis-detail ul {
++  margin: 0;
++  padding-left: 16px;
++  font-size: 12.5px;
++  color: var(--charcoal);
++  display: flex;
++  flex-direction: column;
++  gap: 2px;
++}
++
++.market-query-row {
++  display: flex;
++  gap: 8px;
++}
++
++.market-query-row input {
++  flex: 1;
++  border: 1.5px solid var(--border);
++  border-radius: var(--radius-sm);
++  padding: 8px 10px;
++  font-size: 12.5px;
++}
++
++.market-action-pill {
++  display: inline-flex;
++  align-items: center;
++  gap: 6px;
++  padding: 6px 12px;
++  border-radius: 999px;
++  font-weight: 700;
++  font-size: 13px;
++  width: fit-content;
++}
++
++.action-sell { background: var(--terracotta-light); color: var(--terracotta); }
++.action-wait { background: var(--green-light); color: var(--forest); }
++.action-partial { background: var(--wheat-light); color: #8a6a1f; }
++
++.market-stats {
++  display: flex;
++  gap: 10px;
++}
++
++.market-stats > div {
++  flex: 1;
++  background: var(--cream);
++  border-radius: var(--radius-sm);
++  padding: 8px;
++  text-align: center;
++}
++
++.market-stats span {
++  display: block;
++  font-weight: 700;
++  font-size: 13px;
++  color: var(--forest-deep);
++}
++
++.market-stats small {
++  font-size: 9.5px;
++  color: var(--muted);
++  text-transform: uppercase;
++}
++
++/* Schemes */
++.panel-heading {
++  display: flex;
++  align-items: center;
++  gap: 6px;
++  margin: 0;
++  font-size: 14px;
++  color: var(--forest-deep);
++}
++
++.scheme-chip-row {
++  display: flex;
++  gap: 6px;
++  overflow-x: auto;
++  padding-bottom: 2px;
++}
++
++.scheme-chip {
++  flex-shrink: 0;
++  background: var(--cream);
++  border: 1px solid var(--border);
++  border-radius: 999px;
++  padding: 6px 12px;
++  font-size: 11.5px;
++  color: var(--charcoal);
++  white-space: nowrap;
++}
++
++.scheme-chip.active {
++  background: var(--forest);
++  border-color: var(--forest);
++  color: var(--white);
++}
++
++.scheme-detail h4 {
++  margin: 0;
++  color: var(--forest-deep);
++}
++
++.scheme-detail p {
++  margin: 0;
++  font-size: 12.5px;
++  color: var(--muted);
++}
++
++.scheme-official-link {
++  display: inline-flex;
++  align-items: center;
++  gap: 6px;
++  color: var(--forest);
++  font-size: 12px;
++  font-weight: 700;
++  text-decoration: none;
++  align-self: flex-start;
++}
++
++/* Mobile */
++@media (max-width: 480px) {
++  .ai-panel {
++    right: 12px;
++    left: 12px;
++    bottom: 84px;
++    width: auto;
++    max-height: 72vh;
++  }
++
++  .ai-fab {
++    bottom: 16px;
++    right: 16px;
++  }
++}
+diff --git a/src/components/assistant/assistantData.js b/src/components/assistant/assistantData.js
+new file mode 100644
+index 0000000..04ada8d
+--- /dev/null
++++ b/src/components/assistant/assistantData.js
+@@ -0,0 +1,598 @@
++// AI Kisan Assistant — mock data + "AI" logic.
++// Every function here is written as an async call with a simulated delay so
++// the mock implementations (diagnoseCrop, getMarketAdvice) can be swapped
++// for real Gemini/OpenAI Vision + market-data APIs later without changing
++// any component code that calls them.
++
++export const ASSISTANT_LANGS = ["en", "te", "hi"];
++
++// Maps the app's existing language codes to BCP-47 locales for the
++// Web Speech API (SpeechRecognition + speechSynthesis).
++export const SPEECH_LOCALE = {
++  en: "en-IN",
++  te: "te-IN",
++  hi: "hi-IN",
++};
++
++export const ASSISTANT_TEXT = {
++  en: {
++    assistantTitle: "AI Kisan Assistant",
++    assistantSubtitle: "Your farming companion, anytime",
++    openAssistant: "Open AI Assistant",
++    tabChat: "Chat",
++    tabDiagnose: "Diagnose",
++    tabMarket: "Market",
++    tabSchemes: "Schemes",
++    chatPlaceholder: "Ask about crops, prices, or schemes...",
++    chatSend: "Send",
++    chatEmpty:
++      "Ask me anything about your crops, market prices, or government schemes.",
++    micStart: "Tap to speak",
++    micListening: "Listening...",
++    micNotSupported:
++      "Voice input isn't supported on this browser. Please type instead.",
++    micSpeak: "Speaking...",
++    uploadPhoto: "Upload Photo",
++    takePhoto: "Take Photo",
++    analyzeCrop: "Analyze Crop",
++    analyzing: "Analyzing your crop...",
++    diagnosisResult: "Diagnosis",
++    confidence: "Confidence",
++    severity: "Severity",
++    symptoms: "Symptoms",
++    causes: "Causes",
++    treatment: "Treatment",
++    prevention: "Prevention",
++    demoAiLabel: "Demo AI Diagnosis",
++    selectCrop: "Select crop",
++    askMarketPlaceholder: "e.g. Should I sell tomatoes today?",
++    getAdvice: "Get Advice",
++    sellNow: "Sell Now",
++    wait: "Wait",
++    sellPartially: "Sell Partially",
++    marketReasoning: "Why",
++    demoMarketLabel: "Demo Market Intelligence",
++    schemesTitle: "Government Schemes",
++    schemesPlaceholder: "Ask about PM-KISAN, insurance, soil card...",
++    eligibility: "Eligibility",
++    benefits: "Benefits",
++    howToApply: "How to Apply",
++    officialLink: "Official Website",
++    offlineBanner: "You're offline",
++    offlineNote:
++      "Showing saved advice and FAQs until you're back online.",
++    clearHistory: "Clear history",
++    close: "Close",
++    greeting:
++      "Namaste! I'm your Kisan Assistant. Ask me about crop diseases, market prices, or government schemes.",
++    defaultReply:
++      "I can help with crop diagnosis, market advice, or government schemes. Try the tabs below, or ask me directly.",
++    you: "You",
++    assistantName: "Assistant",
++    recentQuestions: "Recent questions",
++    noRecent: "No recent questions yet",
++    faqTitle: "Frequently asked (offline)",
++    preferredCrop: "Preferred crop",
++  },
++  te: {
++    assistantTitle: "AI కిసాన్ సహాయకుడు",
++    assistantSubtitle: "మీ వ్యవసాయ మిత్రుడు, ఎప్పుడైనా",
++    openAssistant: "AI సహాయకుడిని తెరవండి",
++    tabChat: "చాట్",
++    tabDiagnose: "నిర్ధారణ",
++    tabMarket: "మార్కెట్",
++    tabSchemes: "పథకాలు",
++    chatPlaceholder: "పంటలు, ధరలు లేదా పథకాల గురించి అడగండి...",
++    chatSend: "పంపండి",
++    chatEmpty:
++      "మీ పంటలు, మార్కెట్ ధరలు లేదా ప్రభుత్వ పథకాల గురించి నన్ను అడగండి.",
++    micStart: "మాట్లాడటానికి నొక్కండి",
++    micListening: "వింటున్నాను...",
++    micNotSupported:
++      "ఈ బ్రౌజర్‌లో వాయిస్ ఇన్‌పుట్ లేదు. దయచేసి టైప్ చేయండి.",
++    micSpeak: "మాట్లాడుతోంది...",
++    uploadPhoto: "ఫోటో అప్‌లోడ్ చేయండి",
++    takePhoto: "ఫోటో తీయండి",
++    analyzeCrop: "పంటను విశ్లేషించండి",
++    analyzing: "మీ పంటను విశ్లేషిస్తోంది...",
++    diagnosisResult: "నిర్ధారణ",
++    confidence: "నమ్మకం",
++    severity: "తీవ్రత",
++    symptoms: "లక్షణాలు",
++    causes: "కారణాలు",
++    treatment: "చికిత్స",
++    prevention: "నివారణ",
++    demoAiLabel: "డెమో AI నిర్ధారణ",
++    selectCrop: "పంటను ఎంచుకోండి",
++    askMarketPlaceholder: "ఉదా. ఈరోజు టమాటాలు అమ్మాలా?",
++    getAdvice: "సలహా పొందండి",
++    sellNow: "ఇప్పుడే అమ్మండి",
++    wait: "వేచి ఉండండి",
++    sellPartially: "కొంత భాగం అమ్మండి",
++    marketReasoning: "ఎందుకు",
++    demoMarketLabel: "డెమో మార్కెట్ సమాచారం",
++    schemesTitle: "ప్రభుత్వ పథకాలు",
++    schemesPlaceholder: "PM-KISAN, బీమా, సాయిల్ కార్డ్ గురించి అడగండి...",
++    eligibility: "అర్హత",
++    benefits: "ప్రయోజనాలు",
++    howToApply: "ఎలా దరఖాస్తు చేయాలి",
++    officialLink: "అధికారిక వెబ్‌సైట్",
++    offlineBanner: "మీరు ఆఫ్‌లైన్‌లో ఉన్నారు",
++    offlineNote:
++      "మీరు తిరిగి ఆన్‌లైన్‌లోకి వచ్చే వరకు సేవ్ చేసిన సలహాలు, FAQలు చూపిస్తోంది.",
++    clearHistory: "చరిత్రను తొలగించండి",
++    close: "మూసివేయండి",
++    greeting:
++      "నమస్తే! నేను మీ కిసాన్ సహాయకుడిని. పంట వ్యాధులు, మార్కెట్ ధరలు లేదా ప్రభుత్వ పథకాల గురించి నన్ను అడగండి.",
++    defaultReply:
++      "నేను పంట నిర్ధారణ, మార్కెట్ సలహా లేదా ప్రభుత్వ పథకాలలో సహాయం చేయగలను. కింద ఉన్న ట్యాబ్‌లను ప్రయత్నించండి లేదా నేరుగా నన్ను అడగండి.",
++    you: "మీరు",
++    assistantName: "సహాయకుడు",
++    recentQuestions: "ఇటీవలి ప్రశ్నలు",
++    noRecent: "ఇంకా ఇటీవలి ప్రశ్నలు లేవు",
++    faqTitle: "తరచుగా అడిగే ప్రశ్నలు (ఆఫ్‌లైన్)",
++    preferredCrop: "ఇష్టమైన పంట",
++  },
++  hi: {
++    assistantTitle: "AI किसान सहायक",
++    assistantSubtitle: "आपका खेती साथी, हर समय",
++    openAssistant: "AI सहायक खोलें",
++    tabChat: "चैट",
++    tabDiagnose: "जांच",
++    tabMarket: "बाज़ार",
++    tabSchemes: "योजनाएं",
++    chatPlaceholder: "फसल, कीमतों या योजनाओं के बारे में पूछें...",
++    chatSend: "भेजें",
++    chatEmpty:
++      "अपनी फसल, बाज़ार भाव या सरकारी योजनाओं के बारे में मुझसे पूछें।",
++    micStart: "बोलने के लिए दबाएं",
++    micListening: "सुन रहा हूं...",
++    micNotSupported:
++      "इस ब्राउज़र में वॉइस इनपुट उपलब्ध नहीं है। कृपया टाइप करें।",
++    micSpeak: "बोल रहा हूं...",
++    uploadPhoto: "फोटो अपलोड करें",
++    takePhoto: "फोटो लें",
++    analyzeCrop: "फसल का विश्लेषण करें",
++    analyzing: "आपकी फसल का विश्लेषण हो रहा है...",
++    diagnosisResult: "जांच परिणाम",
++    confidence: "विश्वास स्तर",
++    severity: "गंभीरता",
++    symptoms: "लक्षण",
++    causes: "कारण",
++    treatment: "उपचार",
++    prevention: "रोकथाम",
++    demoAiLabel: "डेमो AI जांच",
++    selectCrop: "फसल चुनें",
++    askMarketPlaceholder: "जैसे: क्या आज टमाटर बेचना चाहिए?",
++    getAdvice: "सलाह लें",
++    sellNow: "अभी बेचें",
++    wait: "प्रतीक्षा करें",
++    sellPartially: "आंशिक बिक्री करें",
++    marketReasoning: "कारण",
++    demoMarketLabel: "डेमो बाज़ार जानकारी",
++    schemesTitle: "सरकारी योजनाएं",
++    schemesPlaceholder: "PM-KISAN, बीमा, सॉइल कार्ड के बारे में पूछें...",
++    eligibility: "पात्रता",
++    benefits: "लाभ",
++    howToApply: "आवेदन कैसे करें",
++    officialLink: "आधिकारिक वेबसाइट",
++    offlineBanner: "आप ऑफ़लाइन हैं",
++    offlineNote:
++      "जब तक आप वापस ऑनलाइन नहीं आते, सहेजी गई सलाह और सामान्य प्रश्न दिखाए जा रहे हैं।",
++    clearHistory: "इतिहास मिटाएं",
++    close: "बंद करें",
++    greeting:
++      "नमस्ते! मैं आपका किसान सहायक हूं। फसल की बीमारी, बाज़ार भाव या सरकारी योजनाओं के बारे में मुझसे पूछें।",
++    defaultReply:
++      "मैं फसल जांच, बाज़ार सलाह या सरकारी योजनाओं में मदद कर सकता हूं। नीचे दिए गए टैब आज़माएं, या सीधे मुझसे पूछें।",
++    you: "आप",
++    assistantName: "सहायक",
++    recentQuestions: "हाल के सवाल",
++    noRecent: "अभी तक कोई हाल का सवाल नहीं",
++    faqTitle: "अक्सर पूछे जाने वाले सवाल (ऑफ़लाइन)",
++    preferredCrop: "पसंदीदा फसल",
++  },
++};
++
++export const CROP_LIST = [
++  "Tomato",
++  "Wheat",
++  "Rice",
++  "Cotton",
++  "Chilli",
++  "Potato",
++];
++
++// ---------------------------------------------------------------------------
++// Crop disease "vision" mock — diagnoseCrop() below is the single seam where
++// a real Gemini Vision / OpenAI Vision call would replace this lookup.
++// ---------------------------------------------------------------------------
++const DISEASE_DB = {
++  Tomato: [
++    {
++      name: "Early Blight",
++      severity: "Medium",
++      symptoms: [
++        "Dark concentric rings on older leaves",
++        "Yellowing around leaf spots",
++        "Leaves drying and dropping from the bottom up",
++      ],
++      causes: [
++        "Fungal infection (Alternaria solani)",
++        "Prolonged leaf wetness or humidity",
++        "Poor air circulation between plants",
++      ],
++      treatment: [
++        "Remove and destroy affected leaves",
++        "Apply a copper-based or chlorothalonil fungicide",
++        "Avoid overhead watering",
++      ],
++      prevention: [
++        "Rotate crops each season",
++        "Space plants for airflow",
++        "Mulch to reduce soil splash onto leaves",
++      ],
++    },
++    {
++      name: "Leaf Curl Virus",
++      severity: "High",
++      symptoms: [
++        "Upward curling of young leaves",
++        "Stunted plant growth",
++        "Yellowing along leaf veins",
++      ],
++      causes: [
++        "Transmitted by whiteflies",
++        "Nearby infected plants",
++      ],
++      treatment: [
++        "Remove and destroy infected plants",
++        "Control whitefly population with sticky traps",
++        "Use recommended insecticide for whiteflies",
++      ],
++      prevention: [
++        "Use virus-resistant varieties",
++        "Cover nursery beds with insect netting",
++        "Avoid planting near infected fields",
++      ],
++    },
++  ],
++  Wheat: [
++    {
++      name: "Yellow Rust",
++      severity: "Medium",
++      symptoms: [
++        "Yellow-orange powdery stripes on leaves",
++        "Stripes running parallel to leaf veins",
++        "Reduced grain filling",
++      ],
++      causes: [
++        "Fungal infection (Puccinia striiformis)",
++        "Cool, humid weather",
++      ],
++      treatment: [
++        "Apply a triazole-group fungicide",
++        "Remove volunteer wheat plants nearby",
++      ],
++      prevention: [
++        "Plant rust-resistant varieties",
++        "Time sowing to avoid peak humid spells",
++      ],
++    },
++  ],
++  Rice: [
++    {
++      name: "Bacterial Leaf Blight",
++      severity: "High",
++      symptoms: [
++        "Water-soaked streaks near leaf tips",
++        "Leaves turning yellow then straw-colored",
++        "Wilting in seedlings",
++      ],
++      causes: [
++        "Bacterial infection (Xanthomonas oryzae)",
++        "Standing water and warm temperatures",
++      ],
++      treatment: [
++        "Drain excess field water where possible",
++        "Apply a copper-based bactericide",
++      ],
++      prevention: [
++        "Use certified disease-free seed",
++        "Avoid excess nitrogen fertilizer",
++      ],
++    },
++  ],
++  Cotton: [
++    {
++      name: "Leaf Curl Virus",
++      severity: "High",
++      symptoms: [
++        "Upward curling and thickening of leaves",
++        "Dark green vein banding",
++        "Reduced boll formation",
++      ],
++      causes: ["Transmitted by whiteflies"],
++      treatment: [
++        "Remove severely infected plants",
++        "Manage whitefly population early",
++      ],
++      prevention: [
++        "Plant approved resistant hybrids",
++        "Monitor whitefly traps weekly",
++      ],
++    },
++  ],
++  Chilli: [
++    {
++      name: "Anthracnose (Fruit Rot)",
++      severity: "Medium",
++      symptoms: [
++        "Sunken dark spots on fruit",
++        "Concentric rings within spots",
++        "Fruit drop in advanced stages",
++      ],
++      causes: [
++        "Fungal infection (Colletotrichum spp.)",
++        "Warm, wet conditions during fruiting",
++      ],
++      treatment: [
++        "Remove and destroy infected fruit",
++        "Apply a recommended fungicide spray",
++      ],
++      prevention: [
++        "Avoid overhead irrigation",
++        "Use disease-free seedlings",
++      ],
++    },
++  ],
++  Potato: [
++    {
++      name: "Late Blight",
++      severity: "High",
++      symptoms: [
++        "Dark, water-soaked patches on leaves",
++        "White fungal growth under leaves in humid weather",
++        "Rapid collapse of foliage",
++      ],
++      causes: [
++        "Fungal infection (Phytophthora infestans)",
++        "Cool, wet weather",
++      ],
++      treatment: [
++        "Apply a systemic fungicide promptly",
++        "Remove and destroy infected plants",
++      ],
++      prevention: [
++        "Use certified seed potatoes",
++        "Ensure good field drainage",
++      ],
++    },
++  ],
++  default: [
++    {
++      name: "No Major Disease Detected",
++      severity: "Low",
++      symptoms: ["Leaves appear generally healthy"],
++      causes: ["N/A"],
++      treatment: ["Continue regular monitoring"],
++      prevention: [
++        "Maintain balanced fertilization",
++        "Monitor weekly for early signs of stress",
++      ],
++    },
++  ],
++};
++
++function seededRandom(seedStr) {
++  let seed = 0;
++  for (let i = 0; i < seedStr.length; i++) {
++    seed = (seed * 31 + seedStr.charCodeAt(i)) % 100000;
++  }
++  return seed / 100000;
++}
++
++// Mock crop-disease "vision" call.
++// TODO(production): replace this function body with a real call to
++// Gemini Vision / OpenAI Vision, passing the captured image. Keep the
++// same return shape so CropDiagnosis.jsx needs no changes.
++export async function diagnoseCrop(cropName, imageFile) {
++  await new Promise((r) => setTimeout(r, 1400));
++
++  const options = DISEASE_DB[cropName] || DISEASE_DB.default;
++  const seed = seededRandom(
++    (cropName || "crop") + (imageFile?.name || Date.now())
++  );
++  const pick = options[Math.floor(seed * options.length)];
++  const confidence = Math.round(72 + seed * 24);
++
++  return {
++    ...pick,
++    crop: cropName,
++    confidence,
++    diagnosedAt: new Date().toISOString(),
++  };
++}
++
++// ---------------------------------------------------------------------------
++// Market advisor mock — mirrors the shape of the backend's
++// /api/market/analyze endpoint so it can call the real API later.
++// ---------------------------------------------------------------------------
++const MARKET_MOCK = {
++  Tomato: { currentPrice: 1850, averagePrice: 1780, demand: "MEDIUM" },
++  Wheat: { currentPrice: 2450, averagePrice: 2350, demand: "HIGH" },
++  Rice: { currentPrice: 3200, averagePrice: 3115, demand: "HIGH" },
++  Cotton: { currentPrice: 7200, averagePrice: 7050, demand: "MEDIUM" },
++  Chilli: { currentPrice: 14500, averagePrice: 15200, demand: "LOW" },
++  Potato: { currentPrice: 1400, averagePrice: 1450, demand: "LOW" },
++};
++
++export function matchCropFromText(text) {
++  const lower = (text || "").toLowerCase();
++  return CROP_LIST.find((c) => lower.includes(c.toLowerCase())) || null;
++}
++
++// TODO(production): replace MARKET_MOCK lookups with live Agmarknet/eNAM
++// price feeds and a real weather + transport-cost signal. Keep the same
++// return shape so MarketAdvisor.jsx needs no changes.
++export async function getMarketAdvice(cropName) {
++  await new Promise((r) => setTimeout(r, 1000));
++
++  const data = MARKET_MOCK[cropName] || MARKET_MOCK.Tomato;
++  const trend =
++    ((data.currentPrice - data.averagePrice) / data.averagePrice) * 100;
++
++  let action = "SELL_NOW";
++  let confidence = 68;
++  const reasons = [];
++
++  if (trend >= 3 && data.demand === "HIGH") {
++    action = "WAIT";
++    confidence = 84;
++    reasons.push("Prices are trending up and buyer demand is high");
++    reasons.push("Waiting a few days may fetch a better rate");
++  } else if (trend <= -2 || data.demand === "LOW") {
++    action = "SELL_NOW";
++    confidence = 79;
++    reasons.push("Prices are flat or falling in your market");
++    reasons.push("Holding stock risks further price drops");
++  } else if (data.demand === "MEDIUM" && trend > 0) {
++    action = "SELL_PARTIALLY";
++    confidence = 71;
++    reasons.push("Demand is moderate with a slight upward trend");
++    reasons.push("Selling part of your stock now balances risk and upside");
++  } else {
++    reasons.push("Market conditions look stable");
++  }
++
++  return {
++    crop: cropName,
++    currentPrice: data.currentPrice,
++    trend: Number(trend.toFixed(1)),
++    demand: data.demand,
++    action,
++    confidence,
++    reasons,
++  };
++}
++
++// ---------------------------------------------------------------------------
++// Government scheme data (verified against official portals as of the
++// content written here — always point farmers to the official site to
++// confirm current details before applying).
++// ---------------------------------------------------------------------------
++export const GOV_SCHEMES = [
++  {
++    id: "pmkisan",
++    name: "PM-KISAN",
++    keywords: ["pm kisan", "pm-kisan", "kisan samman", "income support", "6000"],
++    summary:
++      "A central scheme giving eligible farmer families direct income support of ₹6,000 per year, paid in three installments straight to their bank account.",
++    eligibility: [
++      "Landholding farmer families (as per state/UT land records)",
++      "Excludes higher-income categories such as institutional landholders and income-tax payers",
++    ],
++    benefits: ["₹6,000/year direct benefit transfer, paid in 3 installments"],
++    howToApply: [
++      "Register on the PM-KISAN portal or via your local CSC",
++      "Provide Aadhaar, land records, and bank account details",
++      "Check status anytime under 'Beneficiary Status'",
++    ],
++    link: "https://pmkisan.gov.in",
++  },
++  {
++    id: "pmfby",
++    name: "PMFBY (Crop Insurance)",
++    keywords: ["insurance", "crop insurance", "pmfby", "fasal bima", "bima"],
++    summary:
++      "Pradhan Mantri Fasal Bima Yojana covers farmers against crop loss from natural calamities, pests, and diseases, with the premium mostly subsidized by the government.",
++    eligibility: [
++      "All farmers growing notified crops in a notified area",
++      "Both loanee and non-loanee farmers can enroll",
++    ],
++    benefits: [
++      "Low farmer premium share (around 1.5–5% depending on season/crop)",
++      "Coverage for localized and widespread crop losses",
++    ],
++    howToApply: [
++      "Apply on the National Crop Insurance Portal (pmfby.gov.in)",
++      "Or apply via your bank, CSC, or insurance intermediary",
++      "Report crop loss within 72 hours of the event",
++    ],
++    link: "https://pmfby.gov.in",
++  },
++  {
++    id: "soilhealth",
++    name: "Soil Health Card",
++    keywords: ["soil", "soil health", "soil card", "nutrients"],
++    summary:
++      "A free soil testing scheme that gives farmers a report on their land's nutrient levels along with crop-wise fertilizer recommendations.",
++    eligibility: ["All farmers with cultivable land"],
++    benefits: [
++      "Free soil nutrient report every cycle",
++      "Guidance on fertilizer use to cut input costs",
++    ],
++    howToApply: [
++      "Apply on the Soil Health Card portal or through your nearest KVK/CSC",
++      "Submit land details and a soil sample for testing",
++      "Download your card once results are ready",
++    ],
++    link: "https://soilhealth.dac.gov.in",
++  },
++  {
++    id: "kcc",
++    name: "Kisan Credit Card",
++    keywords: ["credit", "loan", "kcc", "credit card"],
++    summary:
++      "Gives farmers timely access to short-term credit for crop, and allied-activity needs, at subsidized interest rates.",
++    eligibility: ["Farmers, tenant farmers, and sharecroppers"],
++    benefits: [
++      "Flexible short-term credit at subsidized interest",
++      "Covers crop production and allied activities",
++    ],
++    howToApply: [
++      "Apply through any nearest bank branch",
++      "Or apply online via your bank's net-banking / the myScheme portal",
++    ],
++    link: "https://www.myscheme.gov.in",
++  },
++  {
++    id: "registry",
++    name: "Farmer Registry (Agristack)",
++    keywords: ["registry", "farmer id", "agristack", "farmer registry"],
++    summary:
++      "A digital farmer ID linking land records to a unified profile, used to simplify enrollment across multiple schemes.",
++    eligibility: ["All landholding farmers"],
++    benefits: [
++      "One digital ID usable across multiple government schemes",
++      "Faster verification when applying for benefits",
++    ],
++    howToApply: [
++      "Register through your state's Agristack / farmer registry camp",
++      "Or check availability via the myScheme portal",
++    ],
++    link: "https://www.myscheme.gov.in",
++  },
++];
++
++export function findScheme(query) {
++  const lower = (query || "").toLowerCase();
++  return (
++    GOV_SCHEMES.find((s) => s.keywords.some((k) => lower.includes(k))) || null
++  );
++}
++
++export const OFFLINE_FAQS = {
++  en: [
++    { q: "When should I water my crop?", a: "Early morning or evening reduces evaporation loss." },
++    { q: "How do I reduce pest attacks?", a: "Rotate crops and monitor weekly with sticky traps." },
++  ],
++  te: [
++    { q: "నా పంటకు ఎప్పుడు నీరు పెట్టాలి?", a: "ఉదయం లేదా సాయంత్రం నీరు పెడితే ఆవిరి నష్టం తగ్గుతుంది." },
++    { q: "పురుగుల బెడదను ఎలా తగ్గించాలి?", a: "పంట మార్పిడి చేయండి, వారానికొకసారి స్టికీ ట్రాప్‌లతో పరిశీలించండి." },
++  ],
++  hi: [
++    { q: "फसल को कब पानी देना चाहिए?", a: "सुबह जल्दी या शाम को पानी देने से वाष्पीकरण कम होता है।" },
++    { q: "कीट प्रकोप कैसे कम करें?", a: "फसल चक्र अपनाएं और साप्ताहिक रूप से स्टिकी ट्रैप से निगरानी करें।" },
++  ],
++};

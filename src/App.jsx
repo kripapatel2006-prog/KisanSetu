@@ -1348,6 +1348,12 @@ function BuyerDashboard({ language, setLanguage, profile, onLogout }) {
           </div>
         </main>
       )}
+
+      <KisanAIAssistant
+        role="buyer"
+        language={language}
+        context={{ location: profile?.location || "", productsInterested: profile?.productsInterested || [] }}
+      />
     </div>
   );
 }
@@ -1922,13 +1928,22 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
     []
   );
 
-  const selectedCrop = crops[crop];
+  const selectedCrop = crops[crop] || {
+    base: 2000,
+    demand: 70,
+    trend: 0,
+    buyers: 0,
+    region: location || "Unknown",
+  };
 
-  const qualityMultiplier = {
-    A: 1.1,
-    B: 1,
-    C: 0.9,
-  }[quality];
+  const normalizedQuality = String(quality || "").trim().toUpperCase();
+
+  const qualityMultiplier =
+    normalizedQuality === "A" || normalizedQuality.includes("PREMIUM")
+      ? 1.1
+      : normalizedQuality === "C" || normalizedQuality.includes("BASIC")
+        ? 0.9
+        : 1;
 
   const fairPrice = selectedCrop.base * qualityMultiplier;
 
@@ -1952,7 +1967,7 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
 
   const netRealisation = useMemo(() => {
     const perQuintal = Math.max(
-      offer - transportCost - storageRisk,
+      Number(offer || 0) - transportCost - storageRisk,
       0
     );
 
@@ -2397,23 +2412,21 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
                   <div className="form-field">
                     <label>{t.crop}</label>
 
-                    <select
+                    <input
+                      type="text"
+                      list="crop-options"
                       value={crop}
-                      onChange={(e) =>
-                        setCrop(e.target.value)
-                      }
-                    >
-                      {Object.keys(crops).map(
-                        (cropName) => (
-                          <option
-                            key={cropName}
-                            value={cropName}
-                          >
-                            {cropName} — {crops[cropName].region}
-                          </option>
-                        )
-                      )}
-                    </select>
+                      onChange={(e) => setCrop(e.target.value)}
+                      placeholder="Enter crop name"
+                      aria-label={t.crop}
+                    />
+                    <datalist id="crop-options">
+                      {Object.keys(crops).map((cropName) => (
+                        <option key={cropName} value={cropName}>
+                          {cropName} — {crops[cropName].region}
+                        </option>
+                      ))}
+                    </datalist>
                   </div>
 
                   <div className="form-field">
@@ -2422,16 +2435,12 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
                     <div className="input-unit">
                       <input
                         type="number"
-                        min="1"
+                        min="0"
+                        step="0.01"
                         value={quantity}
-                        onChange={(e) =>
-                          setQuantity(
-                            Math.max(
-                              1,
-                              Number(e.target.value)
-                            )
-                          )
-                        }
+                        onChange={(e) => setQuantity(e.target.value)}
+                        placeholder="Enter quantity"
+                        aria-label={t.quantity}
                       />
 
                       <span>{t.quintal}</span>
@@ -2441,40 +2450,47 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
                   <div className="form-field">
                     <label>{t.quality}</label>
 
-                    <select
+                    <input
+                      type="text"
+                      list="quality-options"
                       value={quality}
-                      onChange={(e) =>
-                        setQuality(e.target.value)
-                      }
-                    >
-                      <option value="A">
-                        {t.premium}
-                      </option>
-                      <option value="B">
-                        {t.standard}
-                      </option>
-                      <option value="C">
-                        {t.basic}
-                      </option>
-                    </select>
+                      onChange={(e) => setQuality(e.target.value)}
+                      placeholder="Type quality (e.g. A, B, C, Premium)"
+                      aria-label={t.quality}
+                    />
+                    <datalist id="quality-options">
+                      <option value="A" />
+                      <option value="B" />
+                      <option value="C" />
+                      <option value="Premium" />
+                      <option value="Standard" />
+                      <option value="Basic" />
+                    </datalist>
                   </div>
 
                   <div className="form-field">
                     <label>{t.location}</label>
 
-                    <select
+                    <input
+                      type="text"
+                      list="location-options"
                       value={location}
-                      onChange={(e) =>
-                        setLocation(e.target.value)
-                      }
-                    >
-                      <option value="Hyderabad">
-                        Hyderabad
-                      </option>
-                      <option value="Other">
-                        Other
-                      </option>
-                    </select>
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="Enter your location"
+                      aria-label={t.location}
+                    />
+                    <datalist id="location-options">
+                      <option value="Hyderabad" />
+                      <option value="Warangal" />
+                      <option value="Nizamabad" />
+                      <option value="Karimnagar" />
+                      <option value="Vikarabad" />
+                      <option value="Nashik" />
+                      <option value="Nagpur" />
+                      <option value="Ludhiana" />
+                      <option value="Junagadh" />
+                      <option value="Chikmagalur" />
+                    </datalist>
                   </div>
                 </div>
 
@@ -2487,15 +2503,11 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
                     <input
                       type="number"
                       min="0"
+                      step="1"
                       value={offer}
-                      onChange={(e) =>
-                        setOffer(
-                          Math.max(
-                            0,
-                            Number(e.target.value)
-                          )
-                        )
-                      }
+                      onChange={(e) => setOffer(e.target.value)}
+                      placeholder="Enter offer"
+                      aria-label={t.expectedOffer}
                     />
 
                     <small>/ quintal</small>
@@ -3283,6 +3295,12 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
         </main>
       )}
 
+      <KisanAIAssistant
+        role="farmer"
+        language={language}
+        context={{ crop, location, quantity, quality, offer }}
+      />
+
       <footer className="footer">
         <div className="page-container footer-inner">
           <div>
@@ -3302,6 +3320,262 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
   );
 }
 
+
+/* ============================================================
+   KISAN AI ASSISTANT
+   Voice-first multilingual assistant for Farmers and Buyers.
+   ============================================================ */
+
+const AI_LANGUAGE_CONFIG = {
+  en: { label: "English", speech: "en-IN" },
+  hi: { label: "हिन्दी", speech: "hi-IN" },
+  te: { label: "తెలుగు", speech: "te-IN" },
+};
+
+function KisanAIAssistant({ role, language, context = {} }) {
+  const [selectedLanguage, setSelectedLanguage] = useState(language || "en");
+  const [message, setMessage] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    setSelectedLanguage(language || "en");
+  }, [language]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const speechLanguage =
+    AI_LANGUAGE_CONFIG[selectedLanguage]?.speech || "en-IN";
+
+  const speakAnswer = (text) => {
+    if (!text || typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = speechLanguage;
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startListening = () => {
+    setError("");
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setError("Voice input is not supported in this browser. Please use Google Chrome.");
+      return;
+    }
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = speechLanguage;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      recognitionRef.current = null;
+      if (event.error === "not-allowed") {
+        setError("Microphone permission was denied. Please allow microphone access and try again.");
+      } else if (event.error === "no-speech") {
+        setError("I could not hear anything. Please speak again.");
+      } else {
+        setError("Voice input could not be started. Please try again.");
+      }
+    };
+    recognition.onresult = (event) => {
+      const transcript = event.results?.[0]?.[0]?.transcript || "";
+      setMessage(transcript);
+      setError("");
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const askAI = async () => {
+    const trimmedMessage = message.trim();
+    if (!trimmedMessage) {
+      setError("Please speak or type a question first.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    try {
+      const response = await fetch("http://localhost:5000/api/ai/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: trimmedMessage,
+          language: selectedLanguage,
+          role,
+          context,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "The AI assistant could not answer right now.");
+      }
+
+      setAnswer(data.answer || "I could not generate an answer.");
+      if (data.answer) speakAnswer(data.answer);
+    } catch (err) {
+      setError(err.message || "Unable to connect to Kisan AI.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      askAI();
+    }
+  };
+
+  const roleTitle = role === "buyer" ? "Buyer AI Assistant" : "Kisan AI Assistant";
+  const roleDescription =
+    role === "buyer"
+      ? "Speak naturally to find produce, understand prices, and discover farmers."
+      : "Speak naturally about crops, prices, selling, and farming questions.";
+
+  return (
+    <section
+      className="page-container"
+      style={{ paddingTop: 24, paddingBottom: 24 }}
+      aria-label={roleTitle}
+    >
+      <div
+        style={{
+          background: "linear-gradient(135deg, #f0fdf4 0%, #ffffff 55%, #eff6ff 100%)",
+          border: "1px solid #d9f0df",
+          borderRadius: 24,
+          padding: "26px",
+          boxShadow: "0 12px 30px rgba(20, 83, 45, 0.08)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#16803c", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+              🤖 KisanSetu AI
+            </div>
+            <h2 style={{ margin: "6px 0 5px", fontSize: 28, color: "#17351f" }}>{roleTitle}</h2>
+            <p style={{ margin: 0, color: "#5b6b60", maxWidth: 700 }}>{roleDescription}</p>
+          </div>
+
+          <div style={{ minWidth: 170 }}>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: 7, color: "#304437" }}>
+              Language
+            </label>
+            <select
+              value={selectedLanguage}
+              onChange={(e) => {
+                setSelectedLanguage(e.target.value);
+                setError("");
+              }}
+              style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd8cf", background: "#fff", fontSize: 15 }}
+            >
+              {Object.entries(AI_LANGUAGE_CONFIG).map(([code, config]) => (
+                <option key={code} value={code}>{config.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={3}
+            placeholder={selectedLanguage === "hi" ? "अपना सवाल बोलें या यहाँ लिखें..." : selectedLanguage === "te" ? "మీ ప్రశ్నను మాట్లాడండి లేదా ఇక్కడ టైప్ చేయండి..." : "Speak your question or type it here..."}
+            style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid #cbd8cf", borderRadius: 14, padding: 14, fontSize: 16, outline: "none", background: "#fff" }}
+          />
+          <button
+            type="button"
+            onClick={startListening}
+            style={{ minWidth: 116, border: 0, borderRadius: 14, padding: "12px 18px", cursor: "pointer", background: isListening ? "#dc2626" : "#16803c", color: "#fff", fontWeight: 800, fontSize: 15, alignSelf: "stretch" }}
+            aria-label={isListening ? "Stop listening" : "Start voice input"}
+          >
+            {isListening ? "⏹ Stop" : "🎙️ Speak"}
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={askAI}
+            disabled={isLoading}
+            style={{ border: 0, borderRadius: 12, padding: "12px 20px", cursor: isLoading ? "wait" : "pointer", background: "#1f2937", color: "#fff", fontWeight: 800, fontSize: 15, opacity: isLoading ? 0.7 : 1 }}
+          >
+            {isLoading ? "🤔 Thinking..." : "✨ Ask Kisan AI"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMessage("");
+              setAnswer("");
+              setError("");
+              if (window.speechSynthesis) window.speechSynthesis.cancel();
+            }}
+            style={{ border: "1px solid #cbd8cf", borderRadius: 12, padding: "12px 18px", cursor: "pointer", background: "#fff", color: "#304437", fontWeight: 700 }}
+          >
+            Clear
+          </button>
+        </div>
+
+        {error && (
+          <div style={{ marginTop: 14, padding: 12, borderRadius: 10, background: "#fff1f2", color: "#b42318", border: "1px solid #fecdd3" }}>
+            {error}
+          </div>
+        )}
+
+        {answer && (
+          <div style={{ marginTop: 18, padding: 18, borderRadius: 16, background: "#fff", border: "1px solid #d9e5dc" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 8 }}>
+              <strong style={{ color: "#16803c" }}>🤖 Kisan AI</strong>
+              <button
+                type="button"
+                onClick={() => speakAnswer(answer)}
+                style={{ border: "1px solid #b9d6c1", borderRadius: 9, padding: "7px 10px", cursor: "pointer", background: "#f0fdf4", color: "#16803c", fontWeight: 700 }}
+              >
+                🔊 Listen
+              </button>
+            </div>
+            <div style={{ color: "#26362b", lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{answer}</div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 14, fontSize: 13, color: "#6a776e" }}>
+          🎙️ Voice input → 📝 Text → 🤖 AI → 💬 Answer → 🔊 Voice
+        </div>
+      </div>
+    </section>
+  );
+}
 
 /* ============================================================
    FROM: App.jsx

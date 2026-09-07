@@ -1,5 +1,18 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import "./assets/App.css";
+import "./assets/kisansetu-theme.css";
+
+import ProduceLotPassport from "./components/sih/ProduceLotPassport";
+import LogisticsTransport from "./components/sih/LogisticsTransport";
+import OrderLifecycle from "./components/sih/OrderLifecycle";
+import VoiceFirstEngine from "./components/sih/VoiceFirstEngine";
+import SalesHistoryImpact from "./components/sih/SalesHistoryImpact";
+import CropCatalogFilter from "./components/sih/CropCatalogFilter";
+
+import HighImpactHero from "./components/sih/HighImpactHero";
+import CoreDifferentiatorWidget from "./components/sih/CoreDifferentiatorWidget";
+import FarmerDashboardDaily from "./components/sih/FarmerDashboardDaily";
+import BuyerMarketplaceLotDetail from "./components/sih/BuyerMarketplaceLotDetail";
 
 /* ============================================================
    FROM: i18n/authTranslations.js
@@ -2232,91 +2245,27 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
 
       {activeTab === "dashboard" && (
         <>
-          <section className="hero">
-            <div className="page-container hero-grid">
-              <div className="hero-copy">
-                <div className="eyebrow">
-                  <span className="eyebrow-line" />
-                  FARMER DECISION SUPPORT
-                </div>
+          <HighImpactHero 
+            onSelectRole={(r) => {
+              if (r === 'BUYER') navigate('buyers');
+              else navigate('dashboard');
+            }}
+            onAnalyseClick={() => {
+              document.getElementById("analysis-form")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            formatCurrency={formatCurrency}
+          />
 
-                <h1>{t.heroTitle}</h1>
+          <main className="page-container">
+            <FarmerDashboardDaily 
+              farmerName={farmerProfile?.name}
+              location={farmerProfile?.village}
+              onActionClick={(tab) => navigate(tab)}
+              formatCurrency={formatCurrency}
+            />
 
-                <p>{t.heroSubtitle}</p>
-
-                <button
-                  className="primary-button"
-                  onClick={() => {
-                    navigate("dashboard");
-
-                    setTimeout(() => {
-                      document
-                        .getElementById("analysis-form")
-                        ?.scrollIntoView({
-                          behavior: "smooth",
-                        });
-                    }, 50);
-                  }}
-                >
-                  {t.analyse}
-                  <span>→</span>
-                </button>
-              </div>
-
-              <div className="hero-decision-card">
-                <div className="decision-card-top">
-                  <div>
-                    <span className="small-label">
-                      SMART DECISION
-                    </span>
-
-                    <h3>{recommendationLabel}</h3>
-                  </div>
-
-                  <div className="confidence-ring">
-                    <strong>{sellDecision.confidence}%</strong>
-                    <span>{t.confidence}</span>
-                  </div>
-                </div>
-
-                <div className="decision-divider" />
-
-                <div className="decision-price-row">
-                  <div>
-                    <span>{t.expectedPrice}</span>
-                    <strong>
-                      {formatCurrency(
-                        sellDecision.expectedPrice
-                      )}
-                      <small>/q</small>
-                    </strong>
-                  </div>
-
-                  <div className="trend-positive">
-                    +{selectedCrop.trend}%
-                    <span>market trend</span>
-                  </div>
-                </div>
-
-                <div className="decision-bar">
-                  <div
-                    style={{
-                      width: `${sellDecision.sell}%`,
-                    }}
-                  />
-                </div>
-
-                <div className="decision-bar-labels">
-                  <span>
-                    Sell {sellDecision.sell}%
-                  </span>
-                  <span>
-                    Hold {sellDecision.hold}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </section>
+            <CoreDifferentiatorWidget formatCurrency={formatCurrency} />
+          </main>
 
           <section className="market-strip">
             <div className="page-container market-strip-grid">
@@ -2396,6 +2345,20 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
             className="analysis-section"
             id="analysis-form"
           >
+            <VoiceFirstEngine 
+              language={language}
+              onAutoPopulate={({ crop: c, quantity: q, quality: ql }) => {
+                if (c) setCrop(c);
+                if (q) setQuantity(q);
+                if (ql) setQuality(ql);
+              }}
+              onVoiceIntent={(intent) => {
+                if (intent === 'FIND_BUYERS') navigate('buyers');
+                else if (intent === 'ARRANGE_TRANSPORT') navigate('market');
+                else navigate('dashboard');
+              }}
+            />
+
             <div className="section-heading">
               <div>
                 <span className="section-kicker">
@@ -2601,6 +2564,15 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
             </div>
           </section>
 
+          <ProduceLotPassport 
+            crop={crop}
+            quantity={quantity}
+            quality={quality}
+            location={location}
+          />
+
+          <SalesHistoryImpact formatCurrency={formatCurrency} />
+
           <section className="differentiator">
             <div className="differentiator-number">
               01
@@ -2753,6 +2725,33 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
                         </strong>
                       </div>
                     </div>
+
+                    <div className="explainable-factors">
+                      <h4>Decision Factors Evaluated:</h4>
+                      <div className="factors-grid">
+                        <div className="factor-item">
+                          <span className="factor-icon">📈</span>
+                          <div>
+                            <strong>Market Movement</strong>
+                            <p>+{selectedCrop.trend}% price trend over last 7 days</p>
+                          </div>
+                        </div>
+                        <div className="factor-item">
+                          <span className="factor-icon">📊</span>
+                          <div>
+                            <strong>Demand Index</strong>
+                            <p>{selectedCrop.demand}/100 active buyer competition</p>
+                          </div>
+                        </div>
+                        <div className="factor-item">
+                          <span className="factor-icon">⏳</span>
+                          <div>
+                            <strong>Storage Risk</strong>
+                            <p>₹{storageRisk}/q estimated decay cost if delayed</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2810,6 +2809,41 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
                       /q
                     </strong>
                   </div>
+                </div>
+              </div>
+
+              <div className="net-comparison-card">
+                <div className="net-comparison-header">
+                  <span className="section-kicker">CORE PRODUCT INNOVATION</span>
+                  <h2>Why Highest Quoted Offer ≠ Highest Net Earnings</h2>
+                  <p>Comparing buyers shows why distance and transport costs make a lower offer yield higher net earnings:</p>
+                </div>
+
+                <div className="comparison-grid">
+                  {matchedBuyers.slice(0, 2).map((buyer, idx) => (
+                    <div className={`comparison-column ${idx === 0 ? "best-column" : ""}`} key={buyer.name}>
+                      {idx === 0 && <span className="winner-badge">⭐ BEST NET REALISATION</span>}
+                      <h4>{buyer.name}</h4>
+                      <span className="buyer-type-tag">{buyer.type} · {buyer.distance} km away</span>
+                      
+                      <div className="comparison-row">
+                        <span>Quoted Offer Price:</span>
+                        <strong>{formatCurrency(buyer.price)}/q</strong>
+                      </div>
+                      <div className="comparison-row deduction">
+                        <span>Transport Cost ({buyer.distance}km):</span>
+                        <strong>−{formatCurrency(buyer.buyerTransport)}/q</strong>
+                      </div>
+                      <div className="comparison-row deduction">
+                        <span>Storage & Decay Risk:</span>
+                        <strong>−{formatCurrency(storageRisk)}/q</strong>
+                      </div>
+                      <div className="comparison-row total-net">
+                        <span>Actual Net Realisation:</span>
+                        <strong>{formatCurrency(buyer.buyerNet)}/q</strong>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -2899,6 +2933,14 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
                   </button>
                 </div>
               </div>
+
+              <LogisticsTransport 
+                buyerName={bestBuyer?.name}
+                distance={bestBuyer?.distance}
+                quantity={quantity}
+                location={location}
+                formatCurrency={formatCurrency}
+              />
             </>
           )}
 
@@ -3078,6 +3120,15 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
                 <strong>🔒 {t.paymentLockedNote}</strong>
               </div>
 
+              <OrderLifecycle 
+                referenceId={saleReference}
+                crop={crop}
+                quantity={quantity}
+                amount={bestBuyer ? bestBuyer.buyerNet * Number(quantity) : netRealisation.total}
+                buyerName={bestBuyer?.name}
+                formatCurrency={formatCurrency}
+              />
+
               <button
                 className="primary-button"
                 onClick={handleStartNewAnalysis}
@@ -3092,18 +3143,7 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
 
       {activeTab === "buyers" && (
         <main className="page-container inner-page">
-          <div className="inner-header">
-            <div>
-              <span className="section-kicker">
-                BUYER NETWORK
-              </span>
-              <h2>{t.allBuyers}</h2>
-            </div>
-
-            <span className="buyer-count">
-              {matchedBuyers.length} matched
-            </span>
-          </div>
+          <BuyerMarketplaceLotDetail formatCurrency={formatCurrency} />
 
           <div className="buyers-table">
             {matchedBuyers.map((buyer, index) => (

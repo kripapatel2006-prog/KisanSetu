@@ -13,6 +13,8 @@ import HighImpactHero from "./components/sih/HighImpactHero";
 import CoreDifferentiatorWidget from "./components/sih/CoreDifferentiatorWidget";
 import FarmerDashboardDaily from "./components/sih/FarmerDashboardDaily";
 import BuyerMarketplaceLotDetail from "./components/sih/BuyerMarketplaceLotDetail";
+import TrustSafetyCenter from "./components/trust/TrustSafetyCenter";
+import TrustModerationDashboard from "./components/trust/TrustModerationDashboard";
 
 /* ============================================================
    FROM: i18n/authTranslations.js
@@ -2200,6 +2202,22 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
             >
               {t.insights}
             </button>
+
+            <button
+              className={activeTab === "trust" ? "active" : ""}
+              onClick={() => navigate("trust")}
+              style={{ fontWeight: 700, color: activeTab === "trust" ? "#2e7d32" : undefined }}
+            >
+              🛡️ Trust & Safety
+            </button>
+
+            <button
+              className={activeTab === "moderation" ? "active" : ""}
+              onClick={() => navigate("moderation")}
+              style={{ fontSize: "0.78rem", background: "rgba(46, 125, 50, 0.1)", borderRadius: "6px" }}
+            >
+              ⚡ Audit Panel
+            </button>
           </nav>
 
           <div className="nav-actions">
@@ -3322,6 +3340,18 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
               </div>
             </div>
           </div>
+        </main>
+      )}
+
+      {activeTab === "trust" && (
+        <main className="page-container inner-page">
+          <TrustSafetyCenter userRole={role || "farmer"} />
+        </main>
+      )}
+
+      {activeTab === "moderation" && (
+        <main className="page-container inner-page">
+          <TrustModerationDashboard />
         </main>
       )}
 

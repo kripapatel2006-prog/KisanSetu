@@ -121,8 +121,12 @@ export default function VoiceFirstEngine({ language, onAutoPopulate, onVoiceInte
     if (!cropFound) cropFound = "Groundnut";
     if (!quantityFound) quantityFound = 10;
 
-    // Detect Intent
-    if (textLower.includes("buyer") || textLower.includes("खरीददार") || textLower.includes("కొనుగోలుదారు")) {
+    // Detect Intent (Marketplace & Trust/Safety Actions)
+    if (textLower.includes("payment") || textLower.includes("నగదు") || textLower.includes("भुगतान") || textLower.includes("మనీ")) {
+      intentFound = "REPORT_PAYMENT_ISSUE";
+    } else if (textLower.includes("spoil") || textLower.includes("ఖరాబు") || textLower.includes("పాడై") || textLower.includes("खराब")) {
+      intentFound = "REPORT_QUALITY_DISPUTE";
+    } else if (textLower.includes("buyer") || textLower.includes("खरीददार") || textLower.includes("కొనుగోలుదారు")) {
       intentFound = "FIND_BUYERS";
     } else if (textLower.includes("order") || textLower.includes("ఆడర్") || textLower.includes("ऑर्डर")) {
       intentFound = "CHECK_ORDER";

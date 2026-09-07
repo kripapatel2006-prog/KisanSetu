@@ -4,11 +4,11 @@
  */
 
 export const CROP_PHOTOGRAPHY = {
-  Groundnut: "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=800&q=80",
-  Tomato: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=800&q=80",
-  Onion: "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&w=800&q=80",
-  Rice: "https://images.unsplash.com/photo-1536657464919-892534f60d6e?auto=format&fit=crop&w=800&q=80",
-  Wheat: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=800&q=80",
+  Groundnut: "/images/crops/groundnut.svg",
+  Tomato: "/images/crops/tomato.svg",
+  Onion: "/images/crops/onion.svg",
+  Rice: "/images/crops/rice.svg",
+  Wheat: "/images/crops/wheat.svg",
   Cotton: "https://images.unsplash.com/photo-1606041008023-472dfb5e530f?auto=format&fit=crop&w=800&q=80",
   Turmeric: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80",
   Sugarcane: "https://images.unsplash.com/photo-1595180630732-c7f7e914041b?auto=format&fit=crop&w=800&q=80",

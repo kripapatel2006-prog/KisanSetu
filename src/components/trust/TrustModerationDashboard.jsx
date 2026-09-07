@@ -40,7 +40,7 @@ export default function TrustModerationDashboard() {
         <div>
           <span style={badgeStyle}>PROTOTYPE MODERATION & TRUST DASHBOARD</span>
           <h2 style={{ margin: "6px 0 0 0", fontSize: "1.4rem", color: "#ffffff", fontWeight: 800 }}>
-            SIH Demonstration — Marketplace Audit & Dispute Control Panel
+            Marketplace Audit & Dispute Control Panel
           </h2>
         </div>
         <div style={{ textAlign: "right", fontSize: "0.8rem", color: "#c8e6c9" }}>

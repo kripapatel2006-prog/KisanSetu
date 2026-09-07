@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="oniBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a1b28"/>
+      <stop offset="100%" stop-color="#140b13"/>
+    </linearGradient>
+    <radialGradient id="oniPurp" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#d980a6"/>
+      <stop offset="40%" stop-color="#96285a"/>
+      <stop offset="85%" stop-color="#590e31"/>
+      <stop offset="100%" stop-color="#330419"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="400" height="300" fill="url(#oniBg)"/>
+
+  <!-- Main Onion Bulb -->
+  <g transform="translate(195, 150)">
+    <ellipse cx="0" cy="25" rx="75" ry="18" fill="#080307" opacity="0.6"/>
+    <!-- Bulb Body -->
+    <path d="M 0 -65 C -75 -45 -80 35 -40 65 C -20 78 20 78 40 65 C 80 35 75 -45 0 -65 Z" fill="url(#oniPurp)" stroke="#420622" stroke-width="2"/>
+    <!-- Papery Skin Lines -->
+    <path d="M 0 -65 C -45 -10 -40 45 0 72 M 0 -65 C 45 -10 40 45 0 72 M 0 -65 C -20 -10 -20 45 0 72 M 0 -65 C 20 -10 20 45 0 72" fill="none" stroke="#f0b6d1" stroke-width="1.2" opacity="0.45"/>
+    <!-- Top Sprout Stem -->
+    <path d="M 0 -65 Q -8 -85 -15 -98 M 0 -65 Q 0 -88 2 -102 M 0 -65 Q 8 -85 12 -95" fill="none" stroke="#689f38" stroke-width="4" stroke-linecap="round"/>
+    <!-- Root Base Fibers -->
+    <path d="M -12 70 L -18 88 M -5 72 L -6 92 M 5 72 L 6 92 M 12 70 L 18 88" stroke="#d7ccc8" stroke-width="2.5"/>
+  </g>
+
+  <!-- Onion 2 (Left) -->
+  <g transform="translate(100, 175) scale(0.75)">
+    <path d="M 0 -65 C -75 -45 -80 35 -40 65 C -20 78 20 78 40 65 C 80 35 75 -45 0 -65 Z" fill="url(#oniPurp)"/>
+    <path d="M 0 -65 C -45 -10 -40 45 0 72 M 0 -65 C 45 -10 40 45 0 72" fill="none" stroke="#f0b6d1" stroke-width="1.2" opacity="0.4"/>
+  </g>
+
+  <rect x="15" y="15" width="170" height="34" rx="8" fill="rgba(42, 27, 40, 0.85)" stroke="#96285a" stroke-width="1.5"/>
+  <text x="25" y="37" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#ffffff">🧅 RED ONION BULBS</text>
+</svg>

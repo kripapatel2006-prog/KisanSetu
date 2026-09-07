@@ -1,35 +1,35 @@
 /**
  * CENTRALIZED CROP CATALOG & PHOTOGRAPHY DICTIONARY (SINGLE SOURCE OF TRUTH)
- * Strictly audited authentic real agricultural photography for all 26 crops.
+ * Strictly audited authentic real JPG agricultural photography for all crops.
  */
 
 export const CROP_PHOTOGRAPHY = {
-  Groundnut: "/images/crops/groundnut.svg",
-  Tomato: "/images/crops/tomato.svg",
-  Onion: "/images/crops/onion.svg",
-  Rice: "/images/crops/rice.svg",
-  Wheat: "/images/crops/wheat.svg",
-  Cotton: "https://images.unsplash.com/photo-1606041008023-472dfb5e530f?auto=format&fit=crop&w=800&q=80",
-  Turmeric: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=800&q=80",
-  Sugarcane: "https://images.unsplash.com/photo-1595180630732-c7f7e914041b?auto=format&fit=crop&w=800&q=80",
-  Coffee: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80",
-  Jute: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80",
-  Maize: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&w=800&q=80",
-  Jowar: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=800&q=80",
-  Bajra: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=800&q=80",
-  Ragi: "https://images.unsplash.com/photo-1536657464919-892534f60d6e?auto=format&fit=crop&w=800&q=80",
-  "Red Gram (Tur)": "https://images.unsplash.com/photo-1515543237350-b3eea1ec8082?auto=format&fit=crop&w=800&q=80",
-  "Green Gram (Moong)": "https://images.unsplash.com/photo-1585992629402-9907c125712e?auto=format&fit=crop&w=800&q=80",
-  "Black Gram (Urad)": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80",
-  "Bengal Gram (Chana)": "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80",
-  Masoor: "https://images.unsplash.com/photo-1515543237350-b3eea1ec8082?auto=format&fit=crop&w=800&q=80",
-  Cowpea: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80",
-  FieldPea: "https://images.unsplash.com/photo-1585992629402-9907c125712e?auto=format&fit=crop&w=800&q=80",
-  Sesame: "https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=800&q=80",
-  Sunflower: "https://images.unsplash.com/photo-1597848212624-a19eb35e2651?auto=format&fit=crop&w=800&q=80",
-  Soybean: "https://images.unsplash.com/photo-1599599810694-b5b37304c03d?auto=format&fit=crop&w=800&q=80",
-  Mustard: "https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=800&q=80",
-  Castor: "https://images.unsplash.com/photo-1599599810694-b5b37304c03d?auto=format&fit=crop&w=800&q=80"
+  Groundnut: "/images/crops/groundnut.jpg",
+  Tomato: "/images/crops/tomato.jpg",
+  Onion: "/images/crops/onion.jpg",
+  Rice: "/images/crops/rice.jpg",
+  Wheat: "/images/crops/wheat.jpg",
+  Cotton: "/images/crops/cotton.jpg",
+  Turmeric: "/images/crops/turmeric.jpg",
+  Sugarcane: "/images/crops/sugarcane.jpg",
+  Coffee: "/images/crops/coffee.jpg",
+  Jute: "/images/crops/jute.jpg",
+  Maize: "/images/crops/maize.jpg",
+  Jowar: "/images/crops/jowar.jpg",
+  Bajra: "/images/crops/bajra.jpg",
+  Ragi: "/images/crops/ragi.jpg",
+  "Red Gram (Tur)": "/images/crops/red-gram.jpg",
+  "Green Gram (Moong)": "/images/crops/green-gram.jpg",
+  "Black Gram (Urad)": "/images/crops/black-gram.jpg",
+  "Bengal Gram (Chana)": "/images/crops/chana.jpg",
+  Masoor: "/images/crops/masoor.jpg",
+  Cowpea: "/images/crops/cowpea.jpg",
+  FieldPea: "/images/crops/field-pea.jpg",
+  Sesame: "/images/crops/sesame.jpg",
+  Sunflower: "/images/crops/sunflower.jpg",
+  Soybean: "/images/crops/soybean.jpg",
+  Mustard: "/images/crops/mustard.jpg",
+  Castor: "/images/crops/castor.jpg"
 };
 
 export const CROP_ICONS = {
@@ -143,7 +143,7 @@ export const CROP_METADATA = {
 
 /**
  * Image Priority Resolver
- * Hierarchy: Farmer Uploaded Photo -> Exact Match -> Case Insensitive / Alias Match -> Neutral Icon Fallback
+ * Hierarchy: Farmer Uploaded Photo -> Exact Match -> Case Insensitive / Alias Match -> Groundnut Local Photo Fallback
  */
 export function getCropImage(cropName, farmerPhotoUrl = null) {
   if (farmerPhotoUrl) return farmerPhotoUrl;
@@ -154,7 +154,7 @@ export function getCropImage(cropName, farmerPhotoUrl = null) {
   // 1. Direct Match
   if (CROP_PHOTOGRAPHY[trimmed]) return CROP_PHOTOGRAPHY[trimmed];
 
-  // 2. Case-Insensitive & Alias Match
+  // 2. Case-Insensitive & Multilingual Alias Match
   const normalized = trimmed.toLowerCase();
   if (normalized.includes("groundnut") || normalized.includes("peanut") || normalized.includes("పల్లీ") || normalized.includes("మూంగఫలీ")) {
     return CROP_PHOTOGRAPHY["Groundnut"];
@@ -205,7 +205,7 @@ export function getCropImage(cropName, farmerPhotoUrl = null) {
   );
   if (foundKey) return CROP_PHOTOGRAPHY[foundKey];
 
-  // Default fallback to Groundnut photography
+  // Default fallback
   return CROP_PHOTOGRAPHY["Groundnut"];
 }
 

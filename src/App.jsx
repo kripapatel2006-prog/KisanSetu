@@ -3355,6 +3355,7 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
         </main>
       )}
 
+<<<<<<< HEAD
       {activeTab === "trust" && (
         <main className="page-container inner-page">
           <TrustSafetyCenter userRole={role || "farmer"} />
@@ -3366,12 +3367,14 @@ function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
           <TrustModerationDashboard />
         </main>
       )}
+=======
 
       <KisanAIAssistant
         role="farmer"
         language={language}
         context={{ crop, location, quantity, quality, offer }}
       />
+>>>>>>> 503301c1e1ab6dfe4ebf74f759b482b23e7fcff1
 
       <footer className="footer">
         <div className="page-container footer-inner">

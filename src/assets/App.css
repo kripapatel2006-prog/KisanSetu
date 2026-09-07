@@ -1470,6 +1470,105 @@ select, input { font-family: inherit; }
 .payment-lock-explainer p { color: rgba(255, 255, 255, 0.65); font-size: 12.5px; line-height: 1.65; }
 
 /* =========================================================
+   PHOTO CAPTURE (produce form)
+   ========================================================= */
+
+.photo-field { grid-column: 1 / -1; }
+
+.photo-capture-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 26px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--cream);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.photo-capture-box:hover { border-color: var(--green); background: var(--green-light); }
+
+.photo-capture-icon { font-size: 24px; }
+.photo-capture-text { font-size: 13px; font-weight: 700; color: var(--forest); }
+
+.photo-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1.5px solid var(--green);
+  border-radius: var(--radius-md);
+  background: var(--green-light);
+}
+
+.photo-preview img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.photo-preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.photo-captured-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--forest);
+}
+
+.photo-retake {
+  display: inline-flex;
+  padding: 6px 12px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.photo-note {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* =========================================================
+   RATING VISIBILITY (stars + trusted-by callout)
+   ========================================================= */
+
+.buyer-rating-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.buyer-rating-line .stars {
+  color: var(--wheat);
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.buyer-rating-line .rating-number {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--charcoal);
+}
+
+.buyer-rating-line .trusted-by {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* =========================================================
    RESPONSIVE
    ========================================================= */
 

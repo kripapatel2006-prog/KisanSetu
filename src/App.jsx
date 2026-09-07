@@ -2,11 +2,17 @@ import { useMemo, useState } from "react";
 import "./assets/App.css";
 
 const crops = {
-  Tomato: { base: 2200, demand: 82, trend: 12, buyers: 18 },
-  Onion: { base: 1900, demand: 74, trend: 7, buyers: 14 },
-  Wheat: { base: 2450, demand: 68, trend: 4, buyers: 21 },
-  Rice: { base: 3100, demand: 88, trend: 15, buyers: 26 },
-  Cotton: { base: 7200, demand: 79, trend: 9, buyers: 16 },
+  Tomato: { base: 2200, demand: 82, trend: 12, buyers: 18, region: "Telangana / Andhra Pradesh" },
+  Onion: { base: 1900, demand: 74, trend: 7, buyers: 14, region: "Maharashtra" },
+  Wheat: { base: 2450, demand: 68, trend: 4, buyers: 21, region: "Punjab / Uttar Pradesh" },
+  Rice: { base: 3100, demand: 88, trend: 15, buyers: 26, region: "Telangana / West Bengal" },
+  Cotton: { base: 7200, demand: 79, trend: 9, buyers: 16, region: "Gujarat / Maharashtra" },
+  Tea: { base: 18500, demand: 71, trend: 6, buyers: 12, region: "Assam" },
+  Sugarcane: { base: 340, demand: 76, trend: 3, buyers: 19, region: "Uttar Pradesh" },
+  Turmeric: { base: 9800, demand: 69, trend: 8, buyers: 11, region: "Telangana" },
+  Coffee: { base: 15200, demand: 73, trend: 5, buyers: 9, region: "Karnataka" },
+  Jute: { base: 4600, demand: 62, trend: 2, buyers: 8, region: "West Bengal" },
+  Groundnut: { base: 6300, demand: 70, trend: 6, buyers: 13, region: "Gujarat" },
 };
 
 const buyers = [
@@ -17,7 +23,7 @@ const buyers = [
     rating: 4.8,
     quantity: 50,
     price: 2380,
-    tier: "Trusted Buyer",
+    tier: "trusted",
     verified: true,
     pastOrders: 142,
     paymentReliability: 98,
@@ -29,7 +35,7 @@ const buyers = [
     rating: 4.7,
     quantity: 35,
     price: 2310,
-    tier: "Verified Buyer",
+    tier: "verified",
     verified: true,
     pastOrders: 76,
     paymentReliability: 95,
@@ -41,7 +47,7 @@ const buyers = [
     rating: 4.6,
     quantity: 20,
     price: 2260,
-    tier: "New Buyer",
+    tier: "new",
     verified: false,
     pastOrders: 4,
     paymentReliability: 100,
@@ -60,13 +66,28 @@ const farmerProfile = {
 };
 
 const getTrustTier = (pastSales, gradeMatchRate) => {
-  if (pastSales >= 20 && gradeMatchRate >= 90) {
-    return { label: "Trusted Supplier", className: "trusted" };
-  }
-  if (pastSales >= 5 && gradeMatchRate >= 80) {
-    return { label: "Verified Farmer", className: "verified" };
-  }
-  return { label: "New Seller", className: "new" };
+  if (pastSales >= 20 && gradeMatchRate >= 90) return "trusted";
+  if (pastSales >= 5 && gradeMatchRate >= 80) return "verified";
+  return "new";
+};
+
+const buyerTierLabel = (tierKey, t) =>
+  ({
+    new: t.tierBuyerNew,
+    verified: t.tierBuyerVerified,
+    trusted: t.tierBuyerTrusted,
+  }[tierKey]);
+
+const farmerTierLabel = (tierKey, t) =>
+  ({
+    new: t.tierFarmerNew,
+    verified: t.tierFarmerVerified,
+    trusted: t.tierFarmerTrusted,
+  }[tierKey]);
+
+const renderStars = (rating) => {
+  const full = Math.round(rating);
+  return "★★★★★".slice(0, full) + "☆☆☆☆☆".slice(0, 5 - full);
 };
 
 const translations = {
@@ -152,6 +173,66 @@ const translations = {
     startNew: "Start New Analysis",
     prototype:
       "Prototype demonstration. Financial values and buyer information are simulated.",
+
+    // Trust, verification & payment lock
+    tierBuyerNew: "New Buyer",
+    tierBuyerVerified: "Verified Buyer",
+    tierBuyerTrusted: "Trusted Buyer",
+    tierFarmerNew: "New Seller",
+    tierFarmerVerified: "Verified Farmer",
+    tierFarmerTrusted: "Trusted Supplier",
+    salesCompletedLabel: "Sales Completed",
+    farmerRatingLabel: "Farmer Rating",
+    gradeMatchLabel: "Grade Match Rate",
+    onTimeDeliveryLabel: "On-time Delivery",
+    pastOrdersLabel: "Past Orders",
+    paymentReliabilityLabel: "Payment Reliability",
+    trustedByPrefix: "Trusted by",
+    trustedBySuffix: "farmers",
+    buyerStatusLabel: "BUYER STATUS",
+    paymentSecuredTitle: "Payment Secured",
+    paymentSecuredText:
+      "Buyer has locked {amount} in escrow. Funds release automatically once delivery is confirmed.",
+    paymentPendingTitle: "Payment Not Yet Secured",
+    paymentPendingText:
+      "Ask the buyer to lock payment before you schedule pickup, so you're not left waiting after harvest.",
+    requestPaymentLock: "Request Payment Lock",
+    paymentStatusLabel: "Payment Status",
+    paymentLockedNote: "Locked — releases on delivery confirmation",
+    trustSectionLabel: "TRUST & VERIFICATION",
+    trustHowTitle: 'How "KisanSetu Verified" actually works',
+    trustIntro:
+      "A declared quality grade or a star rating alone can be gamed. KisanSetu instead checks every sale at four independent points, so no single fake photo, review or claim can carry an entire transaction.",
+    pipelineStep1Title: "Declared Grade",
+    pipelineStep1Text:
+      "Farmer selects A / B / C and captures a live, in-app photo — not a gallery upload.",
+    pipelineStep2Title: "AI Cross-check",
+    pipelineStep2Text:
+      "An AI grading pass flags mismatches between the declared grade and the photo for review — it doesn't auto-approve.",
+    pipelineStep3Title: "Pickup Verification",
+    pipelineStep3Text:
+      "Quantity and condition are physically checked by the collection point before transport begins.",
+    pipelineStep4Title: "Delivery Confirmation",
+    pipelineStep4Text:
+      "Buyer confirms received quality before locked payment is released. Mismatches open a dispute, not an auto-payout.",
+    tierNewTitle: "New Seller / Buyer",
+    tierNewText:
+      "Just joined. Can trade, but counterparties may reasonably ask for a full payment lock until a track record exists.",
+    tierVerifiedTitle: "Verified",
+    tierVerifiedText:
+      "Identity/registration confirmed, 5+ completed orders, no unresolved disputes.",
+    tierTrustedTitle: "Trusted Supplier / Buyer",
+    tierTrustedText:
+      "20+ completed orders with 90%+ grade-match and on-time rate. Ranks higher in Smart Matches and unlocks lower advance requirements.",
+    paymentLockTitle: "Payment Lock, explained",
+    paymentLockText:
+      "Before a farmer commits to harvest and transport, the buyer locks the agreed amount into escrow inside KisanSetu. The farmer can see this before pickup — so they're never left wondering if a buyer will actually pay. Funds release automatically once the buyer confirms delivery; a quality dispute keeps them locked until resolved, instead of releasing automatically either way.",
+    photoLabel: "Produce Photo",
+    photoCta: "Capture Produce Photo",
+    photoRetake: "Retake Photo",
+    photoCaptured: "Photo captured — will be cross-checked at pickup",
+    photoNote:
+      "Take a live photo, not a gallery upload. This helps buyers trust your listing.",
   },
 
   te: {
@@ -201,6 +282,7 @@ const translations = {
     totalEarnings: "అంచనా మొత్తం ఆదాయం",
     bestBuyer: "ఉత్తమ కొనుగోలుదారు",
     bestMatch: "ఉత్తమ మ్యాచ్",
+    proceedSale: "అమ్మకాన్ని పరిశీలించండి",
     distance: "దూరం",
     rating: "రేటింగ్",
     quantityAvailable: "కొనుగోలు సామర్థ్యం",
@@ -233,6 +315,66 @@ const translations = {
     startNew: "కొత్త విశ్లేషణ ప్రారంభించండి",
     prototype:
       "ప్రోటోటైప్ ప్రదర్శన. ఆర్థిక విలువలు మరియు కొనుగోలుదారుల సమాచారం సిమ్యులేట్ చేయబడింది.",
+
+    // Trust, verification & payment lock
+    tierBuyerNew: "కొత్త కొనుగోలుదారు",
+    tierBuyerVerified: "వెరిఫైడ్ కొనుగోలుదారు",
+    tierBuyerTrusted: "నమ్మకమైన కొనుగోలుదారు",
+    tierFarmerNew: "కొత్త విక్రేత",
+    tierFarmerVerified: "వెరిఫైడ్ రైతు",
+    tierFarmerTrusted: "నమ్మకమైన సరఫరాదారు",
+    salesCompletedLabel: "పూర్తయిన అమ్మకాలు",
+    farmerRatingLabel: "రైతు రేటింగ్",
+    gradeMatchLabel: "గ్రేడ్ మ్యాచ్ రేటు",
+    onTimeDeliveryLabel: "సకాలంలో డెలివరీ",
+    pastOrdersLabel: "గత ఆర్డర్లు",
+    paymentReliabilityLabel: "చెల్లింపు విశ్వసనీయత",
+    trustedByPrefix: "నమ్మకం పొందింది",
+    trustedBySuffix: "మంది రైతుల నుండి",
+    buyerStatusLabel: "కొనుగోలుదారు స్థితి",
+    paymentSecuredTitle: "చెల్లింపు సురక్షితం",
+    paymentSecuredText:
+      "కొనుగోలుదారు {amount} ఎస్క్రోలో లాక్ చేశారు. డెలివరీ నిర్ధారించిన వెంటనే మొత్తం విడుదల అవుతుంది.",
+    paymentPendingTitle: "చెల్లింపు ఇంకా సురక్షితం కాలేదు",
+    paymentPendingText:
+      "పికప్ షెడ్యూల్ చేయడానికి ముందు కొనుగోలుదారుని చెల్లింపు లాక్ చేయమని అడగండి, తద్వారా పంట తర్వాత మీరు వేచి ఉండాల్సిన అవసరం లేదు.",
+    requestPaymentLock: "చెల్లింపు లాక్ కోరండి",
+    paymentStatusLabel: "చెల్లింపు స్థితి",
+    paymentLockedNote: "లాక్ చేయబడింది — డెలివరీ నిర్ధారణపై విడుదల అవుతుంది",
+    trustSectionLabel: "నమ్మకం & ధృవీకరణ",
+    trustHowTitle: '"KisanSetu Verified" ఎలా పనిచేస్తుంది',
+    trustIntro:
+      "ప్రకటించిన నాణ్యత గ్రేడ్ లేదా రేటింగ్ మాత్రమే మోసం చేయబడవచ్చు. కాబట్టి KisanSetu ప్రతి అమ్మకాన్ని నాలుగు స్వతంత్ర పాయింట్ల వద్ద తనిఖీ చేస్తుంది.",
+    pipelineStep1Title: "ప్రకటించిన గ్రేడ్",
+    pipelineStep1Text:
+      "రైతు A / B / C ఎంచుకుని, గ్యాలరీ నుండి కాకుండా, యాప్‌లోనే ప్రత్యక్ష ఫోటో తీస్తారు.",
+    pipelineStep2Title: "AI క్రాస్-చెక్",
+    pipelineStep2Text:
+      "AI గ్రేడింగ్ ప్రకటించిన గ్రేడ్ మరియు ఫోటో మధ్య తేడాలను గుర్తించి సమీక్ష కోసం ఫ్లాగ్ చేస్తుంది — స్వయంచాలకంగా ఆమోదించదు.",
+    pipelineStep3Title: "పికప్ ధృవీకరణ",
+    pipelineStep3Text:
+      "రవాణా ప్రారంభమయ్యే ముందు పరిమాణం మరియు స్థితిని కలెక్షన్ పాయింట్ వద్ద భౌతికంగా తనిఖీ చేస్తారు.",
+    pipelineStep4Title: "డెలివరీ నిర్ధారణ",
+    pipelineStep4Text:
+      "లాక్ చేసిన చెల్లింపు విడుదల కావడానికి ముందు కొనుగోలుదారు అందుకున్న నాణ్యతను నిర్ధారిస్తారు. తేడాలు వివాదాన్ని తెరుస్తాయి, స్వయంచాలక చెల్లింపు కాదు.",
+    tierNewTitle: "కొత్త విక్రేత / కొనుగోలుదారు",
+    tierNewText:
+      "ఇప్పుడే చేరారు. వ్యాపారం చేయవచ్చు, కానీ ట్రాక్ రికార్డ్ ఏర్పడే వరకు పూర్తి చెల్లింపు లాక్ అడగవచ్చు.",
+    tierVerifiedTitle: "వెరిఫైడ్",
+    tierVerifiedText:
+      "గుర్తింపు/నమోదు నిర్ధారించబడింది, 5+ పూర్తయిన ఆర్డర్లు, పరిష్కరించని వివాదాలు లేవు.",
+    tierTrustedTitle: "నమ్మకమైన సరఫరాదారు / కొనుగోలుదారు",
+    tierTrustedText:
+      "90%+ గ్రేడ్-మ్యాచ్ మరియు సకాలం రేటుతో 20+ పూర్తయిన ఆర్డర్లు. స్మార్ట్ మ్యాచెస్‌లో ఎక్కువ ప్రాధాన్యత మరియు తక్కువ అడ్వాన్స్ అవసరాలు.",
+    paymentLockTitle: "చెల్లింపు లాక్ వివరణ",
+    paymentLockText:
+      "రైతు పంట కోత మరియు రవాణాకు కట్టుబడి ఉండటానికి ముందు, కొనుగోలుదారు అంగీకరించిన మొత్తాన్ని KisanSetu లోని ఎస్క్రోలో లాక్ చేస్తారు. పికప్‌కు ముందే రైతు దీన్ని చూడగలరు — కొనుగోలుదారు నిజంగా చెల్లిస్తారా అని ఆలోచించాల్సిన అవసరం లేదు. కొనుగోలుదారు డెలివరీని నిర్ధారించిన వెంటనే మొత్తం స్వయంచాలకంగా విడుదల అవుతుంది; నాణ్యత వివాదం పరిష్కారమయ్యే వరకు లాక్‌గా ఉంటుంది.",
+    photoLabel: "పంట ఫోటో",
+    photoCta: "పంట ఫోటో తీయండి",
+    photoRetake: "మళ్ళీ ఫోటో తీయండి",
+    photoCaptured: "ఫోటో తీయబడింది — పికప్ వద్ద క్రాస్-చెక్ చేయబడుతుంది",
+    photoNote:
+      "గ్యాలరీ నుండి కాకుండా ప్రత్యక్ష ఫోటో తీయండి. ఇది కొనుగోలుదారులు మీ లిస్టింగ్‌ను నమ్మడానికి సహాయపడుతుంది.",
   },
 
   hi: {
@@ -282,6 +424,7 @@ const translations = {
     totalEarnings: "अनुमानित कुल आय",
     bestBuyer: "सर्वश्रेष्ठ खरीदार",
     bestMatch: "सर्वश्रेष्ठ मैच",
+    proceedSale: "बिक्री की समीक्षा करें",
     distance: "दूरी",
     rating: "रेटिंग",
     quantityAvailable: "खरीदार क्षमता",
@@ -316,6 +459,66 @@ const translations = {
     startNew: "नया विश्लेषण शुरू करें",
     prototype:
       "प्रोटोटाइप प्रदर्शन। वित्तीय मूल्य और खरीदार जानकारी सिम्युलेटेड है।",
+
+    // Trust, verification & payment lock
+    tierBuyerNew: "नया खरीदार",
+    tierBuyerVerified: "सत्यापित खरीदार",
+    tierBuyerTrusted: "विश्वसनीय खरीदार",
+    tierFarmerNew: "नया विक्रेता",
+    tierFarmerVerified: "सत्यापित किसान",
+    tierFarmerTrusted: "विश्वसनीय आपूर्तिकर्ता",
+    salesCompletedLabel: "पूर्ण बिक्री",
+    farmerRatingLabel: "किसान रेटिंग",
+    gradeMatchLabel: "ग्रेड मिलान दर",
+    onTimeDeliveryLabel: "समय पर डिलीवरी",
+    pastOrdersLabel: "पिछले ऑर्डर",
+    paymentReliabilityLabel: "भुगतान विश्वसनीयता",
+    trustedByPrefix: "भरोसा किया",
+    trustedBySuffix: "किसानों ने",
+    buyerStatusLabel: "खरीदार स्थिति",
+    paymentSecuredTitle: "भुगतान सुरक्षित",
+    paymentSecuredText:
+      "खरीदार ने {amount} एस्क्रो में लॉक कर दिया है। डिलीवरी की पुष्टि होते ही राशि स्वतः जारी हो जाएगी।",
+    paymentPendingTitle: "भुगतान अभी सुरक्षित नहीं है",
+    paymentPendingText:
+      "पिकअप शेड्यूल करने से पहले खरीदार से भुगतान लॉक करने के लिए कहें, ताकि फसल कटाई के बाद आपको इंतज़ार न करना पड़े।",
+    requestPaymentLock: "भुगतान लॉक का अनुरोध करें",
+    paymentStatusLabel: "भुगतान स्थिति",
+    paymentLockedNote: "लॉक किया गया — डिलीवरी की पुष्टि पर जारी होगा",
+    trustSectionLabel: "विश्वास और सत्यापन",
+    trustHowTitle: '"KisanSetu Verified" वास्तव में कैसे काम करता है',
+    trustIntro:
+      "केवल घोषित गुणवत्ता ग्रेड या रेटिंग को धोखा दिया जा सकता है। इसलिए KisanSetu हर बिक्री की जांच चार स्वतंत्र बिंदुओं पर करता है, ताकि कोई भी एक नकली फोटो, समीक्षा या दावा पूरे लेनदेन को प्रभावित न कर सके।",
+    pipelineStep1Title: "घोषित ग्रेड",
+    pipelineStep1Text:
+      "किसान A / B / C चुनता है और गैलरी अपलोड के बजाय ऐप के भीतर सीधे फोटो खींचता है।",
+    pipelineStep2Title: "AI क्रॉस-चेक",
+    pipelineStep2Text:
+      "एक AI ग्रेडिंग जांच घोषित ग्रेड और फोटो के बीच बेमेल को समीक्षा के लिए फ़्लैग करती है — यह स्वतः स्वीकृत नहीं करती।",
+    pipelineStep3Title: "पिकअप सत्यापन",
+    pipelineStep3Text:
+      "परिवहन शुरू होने से पहले मात्रा और स्थिति की जांच संग्रह केंद्र पर भौतिक रूप से की जाती है।",
+    pipelineStep4Title: "डिलीवरी की पुष्टि",
+    pipelineStep4Text:
+      "लॉक किया गया भुगतान जारी होने से पहले खरीदार प्राप्त गुणवत्ता की पुष्टि करता है। बेमेल होने पर विवाद खुलता है, स्वतः भुगतान नहीं।",
+    tierNewTitle: "नया विक्रेता / खरीदार",
+    tierNewText:
+      "अभी-अभी जुड़े हैं। व्यापार कर सकते हैं, लेकिन ट्रैक रिकॉर्ड बनने तक प्रतिपक्ष पूर्ण भुगतान लॉक मांग सकते हैं।",
+    tierVerifiedTitle: "सत्यापित",
+    tierVerifiedText:
+      "पहचान/पंजीकरण की पुष्टि, 5+ पूर्ण ऑर्डर, कोई अनसुलझा विवाद नहीं।",
+    tierTrustedTitle: "विश्वसनीय आपूर्तिकर्ता / खरीदार",
+    tierTrustedText:
+      "90%+ ग्रेड-मिलान और समय पर दर के साथ 20+ पूर्ण ऑर्डर। स्मार्ट मैचेस में उच्च प्राथमिकता और कम अग्रिम आवश्यकताएं।",
+    paymentLockTitle: "भुगतान लॉक, समझाया गया",
+    paymentLockText:
+      "किसान के फसल कटाई और परिवहन के लिए प्रतिबद्ध होने से पहले, खरीदार सहमत राशि को KisanSetu के भीतर एस्क्रो में लॉक करता है। किसान पिकअप से पहले ही यह देख सकता है — इसलिए उन्हें कभी संदेह नहीं रहता कि खरीदार वास्तव में भुगतान करेगा या नहीं। खरीदार द्वारा डिलीवरी की पुष्टि होते ही राशि स्वतः जारी हो जाती है; गुणवत्ता विवाद होने पर यह समाधान होने तक लॉक रहती है।",
+    photoLabel: "उपज फोटो",
+    photoCta: "उपज की फोटो लें",
+    photoRetake: "फिर से फोटो लें",
+    photoCaptured: "फोटो ली गई — पिकअप पर क्रॉस-चेक की जाएगी",
+    photoNote:
+      "गैलरी अपलोड के बजाय लाइव फोटो लें। इससे खरीदारों को आपकी लिस्टिंग पर भरोसा करने में मदद मिलती है।",
   },
 };
 
@@ -331,6 +534,7 @@ function App() {
   const [quality, setQuality] = useState("A");
   const [location, setLocation] = useState("Hyderabad");
   const [offer, setOffer] = useState(2100);
+  const [producePhoto, setProducePhoto] = useState(null);
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [analysisStarted, setAnalysisStarted] = useState(false);
@@ -339,7 +543,7 @@ function App() {
   const [saleReference, setSaleReference] = useState("");
   const [paymentLocked, setPaymentLocked] = useState(false);
 
-  const farmerTier = useMemo(
+  const farmerTierKey = useMemo(
     () =>
       getTrustTier(
         farmerProfile.pastSales,
@@ -364,6 +568,12 @@ function App() {
     Rice: 25,
     Wheat: 20,
     Cotton: 30,
+    Tea: 15,
+    Sugarcane: 35,
+    Turmeric: 22,
+    Coffee: 18,
+    Jute: 28,
+    Groundnut: 26,
   };
 
   const storageRisk = storageRiskMap[crop] || 30;
@@ -526,6 +736,7 @@ function App() {
     setQuality("A");
     setLocation("Hyderabad");
     setOffer(2100);
+    setProducePhoto(null);
 
     setAnalysisStarted(false);
     setShowSaleReview(false);
@@ -546,6 +757,18 @@ function App() {
     window.scrollTo({
       top: 0,
       behavior: "smooth",
+    });
+  };
+
+  const handlePhotoCapture = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (producePhoto) URL.revokeObjectURL(producePhoto.url);
+
+    setProducePhoto({
+      url: URL.createObjectURL(file),
+      capturedAt: new Date().toLocaleTimeString(),
     });
   };
 
@@ -748,27 +971,27 @@ function App() {
                 </div>
               </div>
 
-              <span className={`verified-badge tier-${farmerTier.className}`}>
-                🛡️ {farmerTier.label}
+              <span className={`verified-badge tier-${farmerTierKey}`}>
+                🛡️ {farmerTierLabel(farmerTierKey, t)}
               </span>
 
               <div className="trust-stat">
-                <span>Sales Completed</span>
+                <span>{t.salesCompletedLabel}</span>
                 <strong>{farmerProfile.pastSales}</strong>
               </div>
 
               <div className="trust-stat">
-                <span>Farmer Rating</span>
+                <span>{t.farmerRatingLabel}</span>
                 <strong>{farmerProfile.rating}★</strong>
               </div>
 
               <div className="trust-stat">
-                <span>Grade Match Rate</span>
+                <span>{t.gradeMatchLabel}</span>
                 <strong>{farmerProfile.gradeMatchRate}%</strong>
               </div>
 
               <div className="trust-stat">
-                <span>On-time Delivery</span>
+                <span>{t.onTimeDeliveryLabel}</span>
                 <strong>{farmerProfile.onTimeDelivery}%</strong>
               </div>
             </div>
@@ -810,7 +1033,7 @@ function App() {
                             key={cropName}
                             value={cropName}
                           >
-                            {cropName}
+                            {cropName} — {crops[cropName].region}
                           </option>
                         )
                       )}
@@ -901,6 +1124,45 @@ function App() {
 
                     <small>/ quintal</small>
                   </div>
+                </div>
+
+                <div className="form-field photo-field">
+                  <label>{t.photoLabel}</label>
+
+                  {producePhoto ? (
+                    <div className="photo-preview">
+                      <img src={producePhoto.url} alt="Captured produce" />
+                      <div className="photo-preview-info">
+                        <span className="photo-captured-badge">
+                          ✅ {t.photoCaptured}
+                        </span>
+                        <label className="secondary-button photo-retake">
+                          {t.photoRetake}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handlePhotoCapture}
+                            hidden
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="photo-capture-box">
+                      <span className="photo-capture-icon">📷</span>
+                      <span className="photo-capture-text">{t.photoCta}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handlePhotoCapture}
+                        hidden
+                      />
+                    </label>
+                  )}
+
+                  <p className="photo-note">{t.photoNote}</p>
                 </div>
 
                 <button
@@ -1191,15 +1453,19 @@ function App() {
                     <div>
                       <h3>{bestBuyer.name}</h3>
                       <p>{bestBuyer.type}</p>
-                      {bestBuyer.verified ? (
-                        <span className="verified-badge tier-verified small">
-                          🛡️ {bestBuyer.tier}
-                        </span>
-                      ) : (
-                        <span className="verified-badge tier-new small">
-                          {bestBuyer.tier}
-                        </span>
-                      )}
+                      <span className={`verified-badge tier-${bestBuyer.tier}`}>
+                        {bestBuyer.verified ? "🛡️ " : ""}
+                        {buyerTierLabel(bestBuyer.tier, t)}
+                      </span>
+                      <div className="buyer-rating-line">
+                        <span className="stars">{renderStars(bestBuyer.rating)}</span>
+                        <span className="rating-number">{bestBuyer.rating}/5</span>
+                        {bestBuyer.verified && (
+                          <span className="trusted-by">
+                            · {t.trustedByPrefix} {bestBuyer.pastOrders}+ {t.trustedBySuffix}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1223,12 +1489,12 @@ function App() {
                   </div>
 
                   <div className="buyer-stat">
-                    <span>Past Orders</span>
+                    <span>{t.pastOrdersLabel}</span>
                     <strong>{bestBuyer.pastOrders}</strong>
                   </div>
 
                   <div className="buyer-stat">
-                    <span>Payment Reliability</span>
+                    <span>{t.paymentReliabilityLabel}</span>
                     <strong>{bestBuyer.paymentReliability}%</strong>
                   </div>
                 </div>
@@ -1318,25 +1584,20 @@ function App() {
                 <div className="trust-panel">
                   <div className="trust-panel-row">
                     <div>
-                      <span className="small-label">BUYER STATUS</span>
-                      {bestBuyer.verified ? (
-                        <span className="verified-badge tier-verified">
-                          🛡️ {bestBuyer.tier}
-                        </span>
-                      ) : (
-                        <span className="verified-badge tier-new">
-                          {bestBuyer.tier}
-                        </span>
-                      )}
+                      <span className="small-label">{t.buyerStatusLabel}</span>
+                      <span className={`verified-badge tier-${bestBuyer.tier}`}>
+                        {bestBuyer.verified ? "🛡️ " : ""}
+                        {buyerTierLabel(bestBuyer.tier, t)}
+                      </span>
                     </div>
 
                     <div className="trust-stat">
-                      <span>Past Orders</span>
+                      <span>{t.pastOrdersLabel}</span>
                       <strong>{bestBuyer.pastOrders}</strong>
                     </div>
 
                     <div className="trust-stat">
-                      <span>Payment Reliability</span>
+                      <span>{t.paymentReliabilityLabel}</span>
                       <strong>{bestBuyer.paymentReliability}%</strong>
                     </div>
                   </div>
@@ -1353,16 +1614,19 @@ function App() {
                     <div className="lock-copy">
                       <strong>
                         {paymentLocked
-                          ? "Payment Secured"
-                          : "Payment Not Yet Secured"}
+                          ? t.paymentSecuredTitle
+                          : t.paymentPendingTitle}
                       </strong>
 
                       <p>
                         {paymentLocked
-                          ? `Buyer has locked ${formatCurrency(
-                              bestBuyer.buyerNet * Number(quantity)
-                            )} in escrow. Funds release automatically once delivery is confirmed.`
-                          : "Ask the buyer to lock payment before you schedule pickup, so you're not left waiting after harvest."}
+                          ? t.paymentSecuredText.replace(
+                              "{amount}",
+                              formatCurrency(
+                                bestBuyer.buyerNet * Number(quantity)
+                              )
+                            )
+                          : t.paymentPendingText}
                       </p>
                     </div>
 
@@ -1371,7 +1635,7 @@ function App() {
                         className="secondary-button lock-button"
                         onClick={() => setPaymentLocked(true)}
                       >
-                        Request Payment Lock
+                        {t.requestPaymentLock}
                       </button>
                     )}
                   </div>
@@ -1422,8 +1686,8 @@ function App() {
               </div>
 
               <div className="reference">
-                <span>Payment Status</span>
-                <strong>🔒 Locked — releases on delivery confirmation</strong>
+                <span>{t.paymentStatusLabel}</span>
+                <strong>🔒 {t.paymentLockedNote}</strong>
               </div>
 
               <button
@@ -1468,15 +1732,14 @@ function App() {
                 <div className="buyer-name">
                   <strong>{buyer.name}</strong>
                   <span>{buyer.type}</span>
-                  {buyer.verified ? (
-                    <span className="verified-badge tier-verified small">
-                      🛡️ {buyer.tier}
-                    </span>
-                  ) : (
-                    <span className="verified-badge tier-new small">
-                      {buyer.tier}
-                    </span>
-                  )}
+                  <span className={`verified-badge tier-${buyer.tier} small`}>
+                    {buyer.verified ? "🛡️ " : ""}
+                    {buyerTierLabel(buyer.tier, t)}
+                  </span>
+                  <div className="buyer-rating-line">
+                    <span className="stars">{renderStars(buyer.rating)}</span>
+                    <span className="rating-number">{buyer.rating}/5</span>
+                  </div>
                 </div>
 
                 <div>
@@ -1492,7 +1755,7 @@ function App() {
                 </div>
 
                 <div>
-                  <span>Past Orders</span>
+                  <span>{t.pastOrdersLabel}</span>
                   <strong>{buyer.pastOrders}</strong>
                 </div>
 
@@ -1577,81 +1840,67 @@ function App() {
           </div>
 
           <div className="trust-explainer">
-            <span className="section-kicker">TRUST &amp; VERIFICATION</span>
-            <h2>How "KisanSetu Verified" actually works</h2>
-            <p>
-              A declared quality grade or a star rating alone can be
-              gamed. KisanSetu instead checks every sale at four
-              independent points, so no single fake photo, review or
-              claim can carry an entire transaction.
-            </p>
+            <span className="section-kicker">{t.trustSectionLabel}</span>
+            <h2>{t.trustHowTitle}</h2>
+            <p>{t.trustIntro}</p>
 
             <div className="trust-pipeline">
               <div className="pipeline-step">
                 <span className="pipeline-index">1</span>
-                <h4>Declared Grade</h4>
-                <p>Farmer selects A / B / C and captures a live, in-app photo — not a gallery upload.</p>
+                <h4>{t.pipelineStep1Title}</h4>
+                <p>{t.pipelineStep1Text}</p>
               </div>
 
               <div className="pipeline-arrow">→</div>
 
               <div className="pipeline-step">
                 <span className="pipeline-index">2</span>
-                <h4>AI Cross-check</h4>
-                <p>An AI grading pass flags mismatches between the declared grade and the photo for review — it doesn't auto-approve.</p>
+                <h4>{t.pipelineStep2Title}</h4>
+                <p>{t.pipelineStep2Text}</p>
               </div>
 
               <div className="pipeline-arrow">→</div>
 
               <div className="pipeline-step">
                 <span className="pipeline-index">3</span>
-                <h4>Pickup Verification</h4>
-                <p>Quantity and condition are physically checked by the collection point before transport begins.</p>
+                <h4>{t.pipelineStep3Title}</h4>
+                <p>{t.pipelineStep3Text}</p>
               </div>
 
               <div className="pipeline-arrow">→</div>
 
               <div className="pipeline-step">
                 <span className="pipeline-index">4</span>
-                <h4>Delivery Confirmation</h4>
-                <p>Buyer confirms received quality before locked payment is released. Mismatches open a dispute, not an auto-payout.</p>
+                <h4>{t.pipelineStep4Title}</h4>
+                <p>{t.pipelineStep4Text}</p>
               </div>
             </div>
 
             <div className="trust-tiers-grid">
               <div className="tier-card">
                 <span className="tier-dot new" />
-                <h4>New Seller / Buyer</h4>
-                <p>Just joined. Can trade, but counterparties may reasonably ask for a full payment lock until a track record exists.</p>
+                <h4>{t.tierNewTitle}</h4>
+                <p>{t.tierNewText}</p>
               </div>
 
               <div className="tier-card">
                 <span className="tier-dot verified" />
-                <h4>Verified</h4>
-                <p>Identity/registration confirmed, 5+ completed orders, no unresolved disputes.</p>
+                <h4>{t.tierVerifiedTitle}</h4>
+                <p>{t.tierVerifiedText}</p>
               </div>
 
               <div className="tier-card">
                 <span className="tier-dot trusted" />
-                <h4>Trusted Supplier / Buyer</h4>
-                <p>20+ completed orders with 90%+ grade-match and on-time rate. Ranks higher in Smart Matches and unlocks lower advance requirements.</p>
+                <h4>{t.tierTrustedTitle}</h4>
+                <p>{t.tierTrustedText}</p>
               </div>
             </div>
 
             <div className="payment-lock-explainer">
               <span className="lock-icon">🔒</span>
               <div>
-                <h4>Payment Lock, explained</h4>
-                <p>
-                  Before a farmer commits to harvest and transport, the
-                  buyer locks the agreed amount into escrow inside
-                  KisanSetu. The farmer can see this before pickup — so
-                  they're never left wondering if a buyer will actually
-                  pay. Funds release automatically once the buyer
-                  confirms delivery; a quality dispute keeps them
-                  locked until resolved, instead of releasing
-                  automatically either way.
-                </p>
+                <h4>{t.paymentLockTitle}</h4>
+                <p>{t.paymentLockText}</p>
               </div>
             </div>
           </div>
@@ -1671,10 +1920,6 @@ function App() {
             </p>
           </div>
 
-          <div className="footer-right">
-            <span>Prototype</span>
-            <span>SIH 2026</span>
-          </div>
         </div>
       </footer>
     </div>

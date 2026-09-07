@@ -237,6 +237,18 @@ select, input { font-family: inherit; }
   transform: translateY(-2px);
 }
 
+.primary-button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.primary-button:disabled:hover {
+  background: var(--wheat);
+  transform: none;
+}
+
 .secondary-button {
   padding: 14px 22px;
   border-radius: 11px;
@@ -1077,7 +1089,7 @@ select, input { font-family: inherit; }
 
 .buyer-row {
   display: grid;
-  grid-template-columns: 40px 1fr 100px 90px 120px 90px;
+  grid-template-columns: 40px 1.3fr 90px 80px 90px 120px 90px;
   align-items: center;
   gap: 14px;
   padding: 16px 18px;
@@ -1108,6 +1120,7 @@ select, input { font-family: inherit; }
 
 .buyer-row.top-row .rank { background: var(--wheat); color: var(--forest-deep); }
 
+.buyer-row .buyer-name { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .buyer-row .buyer-name strong { display: block; font-size: 14px; color: var(--charcoal); }
 .buyer-row .buyer-name span { font-size: 11px; color: var(--muted); }
 
@@ -1233,6 +1246,230 @@ select, input { font-family: inherit; }
 }
 
 /* =========================================================
+   TRUST & VERIFICATION SYSTEM
+   ========================================================= */
+
+/* Farmer trust strip (dashboard, below market strip) */
+
+.trust-strip {
+  background: var(--cream);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+}
+
+.trust-strip-grid {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.trust-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trust-avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--forest);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.trust-identity strong { display: block; font-size: 14px; color: var(--charcoal); }
+.trust-identity span { font-size: 11px; color: var(--muted); }
+
+.trust-stat { display: flex; flex-direction: column; gap: 2px; }
+.trust-stat span { font-size: 10px; color: var(--muted); font-weight: 700; }
+.trust-stat strong { font-size: 15px; color: var(--charcoal); font-weight: 800; }
+
+/* Verified badge chip — used in trust strip, buyer cards, buyers table, sale modal */
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.verified-badge.small { padding: 3px 9px; font-size: 10px; }
+
+.verified-badge.tier-new {
+  background: var(--border);
+  color: var(--muted);
+}
+
+.verified-badge.tier-verified {
+  background: var(--green-light);
+  color: var(--forest);
+}
+
+.verified-badge.tier-trusted {
+  background: var(--wheat-light);
+  color: #8a6a1f;
+}
+
+/* Trust panel inside the sale review modal */
+
+.trust-panel {
+  margin: 18px 0;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--cream);
+  border: 1px solid var(--border);
+}
+
+.trust-panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.trust-panel-row .verified-badge { margin-top: 6px; }
+
+.payment-lock-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--white);
+}
+
+.payment-lock-box.locked {
+  border-color: var(--green);
+  background: var(--green-light);
+}
+
+.payment-lock-box.pending {
+  border-color: var(--terracotta);
+  background: var(--terracotta-light);
+}
+
+.payment-lock-box .lock-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+
+.lock-copy strong { display: block; font-size: 13px; color: var(--charcoal); margin-bottom: 4px; }
+.lock-copy p { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+.lock-button {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  font-size: 12px;
+  align-self: center;
+}
+
+/* Trust & Verification explainer (Insights page) */
+
+.trust-explainer {
+  margin-top: 40px;
+  padding: 32px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.trust-explainer h2 { font-size: 22px; margin: 6px 0 10px; }
+.trust-explainer > p { color: var(--muted); font-size: 13px; line-height: 1.6; max-width: 680px; margin-bottom: 26px; }
+
+.trust-pipeline {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 30px;
+  overflow-x: auto;
+}
+
+.pipeline-step {
+  flex: 1;
+  min-width: 160px;
+  padding: 18px;
+  background: var(--cream);
+  border-radius: var(--radius-md);
+}
+
+.pipeline-index {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--forest);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.pipeline-step h4 { font-size: 13px; margin-bottom: 6px; color: var(--charcoal); }
+.pipeline-step p { font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+
+.pipeline-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--sage);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.trust-tiers-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+.tier-card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.tier-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-bottom: 12px;
+}
+
+.tier-dot.new { background: var(--sage); }
+.tier-dot.verified { background: var(--green); }
+.tier-dot.trusted { background: var(--wheat); }
+
+.tier-card h4 { font-size: 14px; margin-bottom: 8px; }
+.tier-card p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+.payment-lock-explainer {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px;
+  border-radius: var(--radius-md);
+  background: var(--forest-dark);
+}
+
+.payment-lock-explainer .lock-icon { font-size: 24px; flex-shrink: 0; }
+.payment-lock-explainer h4 { color: var(--wheat); font-size: 14px; margin-bottom: 8px; }
+.payment-lock-explainer p { color: rgba(255, 255, 255, 0.65); font-size: 12.5px; line-height: 1.65; }
+
+/* =========================================================
    RESPONSIVE
    ========================================================= */
 
@@ -1245,6 +1482,9 @@ select, input { font-family: inherit; }
   .insight-banner { grid-template-columns: 1fr; text-align: center; justify-items: center; }
   .recommendation-content { grid-template-columns: 1fr; justify-items: center; text-align: center; }
   .decision-metrics { grid-template-columns: 1fr 1fr; }
+  .trust-tiers-grid { grid-template-columns: 1fr; }
+  .trust-pipeline { flex-direction: column; }
+  .pipeline-arrow { transform: rotate(90deg); align-self: center; }
 }
 
 @media (max-width: 760px) {
@@ -1263,6 +1503,10 @@ select, input { font-family: inherit; }
   .net-breakdown .minus, .net-breakdown .equals { text-align: center; }
   .sale-review-grid { grid-template-columns: 1fr; }
   .footer-inner { flex-direction: column; align-items: flex-start; }
+  .trust-strip-grid { gap: 16px; }
+  .trust-panel-row { flex-direction: column; align-items: flex-start; }
+  .payment-lock-box { flex-direction: column; }
+  .lock-button { width: 100%; }
 }
 
 @media (max-width: 520px) {

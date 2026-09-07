@@ -17,6 +17,10 @@ const buyers = [
     rating: 4.8,
     quantity: 50,
     price: 2380,
+    tier: "Trusted Buyer",
+    verified: true,
+    pastOrders: 142,
+    paymentReliability: 98,
   },
   {
     name: "Hyderabad Fresh Market",
@@ -25,6 +29,10 @@ const buyers = [
     rating: 4.7,
     quantity: 35,
     price: 2310,
+    tier: "Verified Buyer",
+    verified: true,
+    pastOrders: 76,
+    paymentReliability: 95,
   },
   {
     name: "GreenBasket Retail",
@@ -33,8 +41,33 @@ const buyers = [
     rating: 4.6,
     quantity: 20,
     price: 2260,
+    tier: "New Buyer",
+    verified: false,
+    pastOrders: 4,
+    paymentReliability: 100,
   },
 ];
+
+// Mocked "current farmer" trust profile — in a real build this comes
+// from the farmer's account history, not hardcoded.
+const farmerProfile = {
+  name: "Ramesh Kumar",
+  village: "Chevella, Vikarabad",
+  pastSales: 24,
+  rating: 4.7,
+  gradeMatchRate: 94,
+  onTimeDelivery: 96,
+};
+
+const getTrustTier = (pastSales, gradeMatchRate) => {
+  if (pastSales >= 20 && gradeMatchRate >= 90) {
+    return { label: "Trusted Supplier", className: "trusted" };
+  }
+  if (pastSales >= 5 && gradeMatchRate >= 80) {
+    return { label: "Verified Farmer", className: "verified" };
+  }
+  return { label: "New Seller", className: "new" };
+};
 
 const translations = {
   en: {
@@ -304,6 +337,16 @@ function App() {
   const [showSaleReview, setShowSaleReview] = useState(false);
   const [saleCompleted, setSaleCompleted] = useState(false);
   const [saleReference, setSaleReference] = useState("");
+  const [paymentLocked, setPaymentLocked] = useState(false);
+
+  const farmerTier = useMemo(
+    () =>
+      getTrustTier(
+        farmerProfile.pastSales,
+        farmerProfile.gradeMatchRate
+      ),
+    []
+  );
 
   const selectedCrop = crops[crop];
 
@@ -454,6 +497,7 @@ function App() {
 
     setShowSaleReview(true);
     setSaleCompleted(false);
+    setPaymentLocked(false);
 
     window.scrollTo({
       top: 0,
@@ -487,6 +531,7 @@ function App() {
     setShowSaleReview(false);
     setSaleCompleted(false);
     setSaleReference("");
+    setPaymentLocked(false);
     setActiveTab("dashboard");
 
     window.scrollTo({
@@ -689,6 +734,42 @@ function App() {
               <div className="market-stat">
                 <span>{t.buyersLabel}</span>
                 <strong>{selectedCrop.buyers}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section className="trust-strip">
+            <div className="page-container trust-strip-grid">
+              <div className="trust-identity">
+                <div className="trust-avatar">RK</div>
+                <div>
+                  <strong>{farmerProfile.name}</strong>
+                  <span>{farmerProfile.village}</span>
+                </div>
+              </div>
+
+              <span className={`verified-badge tier-${farmerTier.className}`}>
+                🛡️ {farmerTier.label}
+              </span>
+
+              <div className="trust-stat">
+                <span>Sales Completed</span>
+                <strong>{farmerProfile.pastSales}</strong>
+              </div>
+
+              <div className="trust-stat">
+                <span>Farmer Rating</span>
+                <strong>{farmerProfile.rating}★</strong>
+              </div>
+
+              <div className="trust-stat">
+                <span>Grade Match Rate</span>
+                <strong>{farmerProfile.gradeMatchRate}%</strong>
+              </div>
+
+              <div className="trust-stat">
+                <span>On-time Delivery</span>
+                <strong>{farmerProfile.onTimeDelivery}%</strong>
               </div>
             </div>
           </section>
@@ -1100,12 +1181,25 @@ function App() {
                 <div className="best-buyer-content">
                   <div className="buyer-identity">
                     <div className="buyer-avatar">
-                      FK
+                      {bestBuyer.name
+                        .split(" ")
+                        .map((w) => w[0])
+                        .slice(0, 2)
+                        .join("")}
                     </div>
 
                     <div>
                       <h3>{bestBuyer.name}</h3>
                       <p>{bestBuyer.type}</p>
+                      {bestBuyer.verified ? (
+                        <span className="verified-badge tier-verified small">
+                          🛡️ {bestBuyer.tier}
+                        </span>
+                      ) : (
+                        <span className="verified-badge tier-new small">
+                          {bestBuyer.tier}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1129,8 +1223,13 @@ function App() {
                   </div>
 
                   <div className="buyer-stat">
-                    <span>{t.reliability}</span>
-                    <strong>92/100</strong>
+                    <span>Past Orders</span>
+                    <strong>{bestBuyer.pastOrders}</strong>
+                  </div>
+
+                  <div className="buyer-stat">
+                    <span>Payment Reliability</span>
+                    <strong>{bestBuyer.paymentReliability}%</strong>
                   </div>
                 </div>
 
@@ -1216,6 +1315,68 @@ function App() {
                   </strong>
                 </div>
 
+                <div className="trust-panel">
+                  <div className="trust-panel-row">
+                    <div>
+                      <span className="small-label">BUYER STATUS</span>
+                      {bestBuyer.verified ? (
+                        <span className="verified-badge tier-verified">
+                          🛡️ {bestBuyer.tier}
+                        </span>
+                      ) : (
+                        <span className="verified-badge tier-new">
+                          {bestBuyer.tier}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="trust-stat">
+                      <span>Past Orders</span>
+                      <strong>{bestBuyer.pastOrders}</strong>
+                    </div>
+
+                    <div className="trust-stat">
+                      <span>Payment Reliability</span>
+                      <strong>{bestBuyer.paymentReliability}%</strong>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`payment-lock-box ${
+                      paymentLocked ? "locked" : "pending"
+                    }`}
+                  >
+                    <span className="lock-icon">
+                      {paymentLocked ? "🔒" : "🔓"}
+                    </span>
+
+                    <div className="lock-copy">
+                      <strong>
+                        {paymentLocked
+                          ? "Payment Secured"
+                          : "Payment Not Yet Secured"}
+                      </strong>
+
+                      <p>
+                        {paymentLocked
+                          ? `Buyer has locked ${formatCurrency(
+                              bestBuyer.buyerNet * Number(quantity)
+                            )} in escrow. Funds release automatically once delivery is confirmed.`
+                          : "Ask the buyer to lock payment before you schedule pickup, so you're not left waiting after harvest."}
+                      </p>
+                    </div>
+
+                    {!paymentLocked && (
+                      <button
+                        className="secondary-button lock-button"
+                        onClick={() => setPaymentLocked(true)}
+                      >
+                        Request Payment Lock
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="prototype-note">
                   {t.prototype}
                 </div>
@@ -1233,6 +1394,7 @@ function App() {
                   <button
                     className="primary-button"
                     onClick={handleConfirmSale}
+                    disabled={!paymentLocked}
                   >
                     {t.confirmSale}
                     <span>→</span>
@@ -1257,6 +1419,11 @@ function App() {
               <div className="reference">
                 <span>{t.reference}</span>
                 <strong>{saleReference}</strong>
+              </div>
+
+              <div className="reference">
+                <span>Payment Status</span>
+                <strong>🔒 Locked — releases on delivery confirmation</strong>
               </div>
 
               <button
@@ -1301,6 +1468,15 @@ function App() {
                 <div className="buyer-name">
                   <strong>{buyer.name}</strong>
                   <span>{buyer.type}</span>
+                  {buyer.verified ? (
+                    <span className="verified-badge tier-verified small">
+                      🛡️ {buyer.tier}
+                    </span>
+                  ) : (
+                    <span className="verified-badge tier-new small">
+                      {buyer.tier}
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -1313,6 +1489,11 @@ function App() {
                 <div>
                   <span>{t.rating}</span>
                   <strong>{buyer.rating}/5</strong>
+                </div>
+
+                <div>
+                  <span>Past Orders</span>
+                  <strong>{buyer.pastOrders}</strong>
                 </div>
 
                 <div>
@@ -1394,6 +1575,86 @@ function App() {
               </p>
             </div>
           </div>
+
+          <div className="trust-explainer">
+            <span className="section-kicker">TRUST &amp; VERIFICATION</span>
+            <h2>How "KisanSetu Verified" actually works</h2>
+            <p>
+              A declared quality grade or a star rating alone can be
+              gamed. KisanSetu instead checks every sale at four
+              independent points, so no single fake photo, review or
+              claim can carry an entire transaction.
+            </p>
+
+            <div className="trust-pipeline">
+              <div className="pipeline-step">
+                <span className="pipeline-index">1</span>
+                <h4>Declared Grade</h4>
+                <p>Farmer selects A / B / C and captures a live, in-app photo — not a gallery upload.</p>
+              </div>
+
+              <div className="pipeline-arrow">→</div>
+
+              <div className="pipeline-step">
+                <span className="pipeline-index">2</span>
+                <h4>AI Cross-check</h4>
+                <p>An AI grading pass flags mismatches between the declared grade and the photo for review — it doesn't auto-approve.</p>
+              </div>
+
+              <div className="pipeline-arrow">→</div>
+
+              <div className="pipeline-step">
+                <span className="pipeline-index">3</span>
+                <h4>Pickup Verification</h4>
+                <p>Quantity and condition are physically checked by the collection point before transport begins.</p>
+              </div>
+
+              <div className="pipeline-arrow">→</div>
+
+              <div className="pipeline-step">
+                <span className="pipeline-index">4</span>
+                <h4>Delivery Confirmation</h4>
+                <p>Buyer confirms received quality before locked payment is released. Mismatches open a dispute, not an auto-payout.</p>
+              </div>
+            </div>
+
+            <div className="trust-tiers-grid">
+              <div className="tier-card">
+                <span className="tier-dot new" />
+                <h4>New Seller / Buyer</h4>
+                <p>Just joined. Can trade, but counterparties may reasonably ask for a full payment lock until a track record exists.</p>
+              </div>
+
+              <div className="tier-card">
+                <span className="tier-dot verified" />
+                <h4>Verified</h4>
+                <p>Identity/registration confirmed, 5+ completed orders, no unresolved disputes.</p>
+              </div>
+
+              <div className="tier-card">
+                <span className="tier-dot trusted" />
+                <h4>Trusted Supplier / Buyer</h4>
+                <p>20+ completed orders with 90%+ grade-match and on-time rate. Ranks higher in Smart Matches and unlocks lower advance requirements.</p>
+              </div>
+            </div>
+
+            <div className="payment-lock-explainer">
+              <span className="lock-icon">🔒</span>
+              <div>
+                <h4>Payment Lock, explained</h4>
+                <p>
+                  Before a farmer commits to harvest and transport, the
+                  buyer locks the agreed amount into escrow inside
+                  KisanSetu. The farmer can see this before pickup — so
+                  they're never left wondering if a buyer will actually
+                  pay. Funds release automatically once the buyer
+                  confirms delivery; a quality dispute keeps them
+                  locked until resolved, instead of releasing
+                  automatically either way.
+                </p>
+              </div>
+            </div>
+          </div>
         </main>
       )}
 
@@ -1412,6 +1673,7 @@ function App() {
 
           <div className="footer-right">
             <span>Prototype</span>
+            <span>SIH 2026</span>
           </div>
         </div>
       </footer>

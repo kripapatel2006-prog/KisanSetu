@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, Video, X, Maximize2, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function CropMediaWorkflow({ onComplete, crop, t }) {
@@ -36,11 +36,11 @@ export default function CropMediaWorkflow({ onComplete, crop, t }) {
     
     const validFiles = files.filter(file => {
       if (file.size > 20 * 1024 * 1024) {
-        alert(${file.name} is too large. Maximum size is 20MB.);
+        alert(`${file.name} is too large. Maximum size is 20MB.`);
         return false;
       }
       if (type === 'image' && !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-        alert(${file.name} has an invalid format. Please use JPG, PNG, or WebP.);
+        alert(`${file.name} has an invalid format. Please use JPG, PNG, or WebP.`);
         return false;
       }
       return true;

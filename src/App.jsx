@@ -1,5 +1,1361 @@
-import { useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import "./assets/App.css";
+
+/* ============================================================
+   FROM: i18n/authTranslations.js
+   ============================================================ */
+
+// Centralized translations for everything auth-related: role selection,
+// login, OTP, onboarding, and the buyer dashboard shell. Kept separate
+// from the main app's `translations` object in FarmerApp.jsx so the two
+// concerns don't get tangled, but the same `language` key ("en" | "te" | "hi")
+// is used to look things up in both places.
+
+const authTranslations = {
+  en: {
+    appTagline: "Connecting farmers to better decisions and better markets.",
+    continuePrompt: "How would you like to continue?",
+    farmerRoleTitle: "I'm a Farmer",
+    farmerRolePoints: [
+      "Grow smarter",
+      "Monitor crops",
+      "Get AI recommendations",
+      "Find better market opportunities",
+    ],
+    buyerRoleTitle: "I'm a Buyer",
+    buyerRolePoints: [
+      "Discover farm produce",
+      "Connect with farmers",
+      "Compare available produce",
+      "Manage purchases",
+    ],
+
+    farmerLoginTitle: "Welcome back, Farmer",
+    buyerLoginTitle: "Welcome back, Buyer",
+    mobileLabel: "Mobile Number",
+    mobilePlaceholder: "98765 43210",
+    sendOtp: "Send OTP",
+    sending: "Sending...",
+    invalidMobile: "Please enter a valid 10-digit mobile number.",
+    backToRoles: "← Change role",
+
+    verifyTitle: "Verify your mobile number",
+    otpSentTo: "Enter the 6-digit OTP sent to",
+    demoModeBanner: "Demo mode — no real SMS is being sent.",
+    demoOtpLabel: "Demo OTP (shown only in this prototype):",
+    verifyAndContinue: "Verify & Continue",
+    verifying: "Verifying...",
+    resendOtp: "Resend OTP",
+    resendIn: "Resend OTP in",
+    changeNumber: "Change mobile number",
+    otpIncomplete: "Please enter all 6 digits.",
+    otpIncorrect: "That OTP doesn't match. Please try again.",
+    otpExpired: "This OTP has expired. Please request a new one.",
+    otpTooManyAttempts:
+      "Too many incorrect attempts. Please request a new OTP.",
+    otpResent: "A new demo OTP has been generated.",
+
+    farmerOnboardingTitle: "Create your Farmer Profile",
+    buyerOnboardingTitle: "Create your Buyer Profile",
+    fullName: "Full Name",
+    businessName: "Name / Business Name",
+    mobileVerified: "Mobile Number (verified)",
+    location: "Location",
+    preferredLanguage: "Preferred Language",
+    landSize: "Land Size (acres)",
+    mainCrops: "Main Crop(s)",
+    businessType: "Business Type",
+    productsInterested: "Products Interested In",
+    createFarmerProfile: "Create Farmer Profile",
+    createBuyerProfile: "Create Buyer Profile",
+    fieldRequired: "This field is required.",
+    selectAtLeastOne: "Please select at least one.",
+
+    logout: "Logout",
+    demoDataLabel: "Simulated demo data",
+
+    buyerWelcome: "Welcome",
+    buyerDashboardSubtitle: "Discover produce, compare offers, connect with farmers.",
+    availableProduce: "Available Produce",
+    searchPlaceholder: "Search crops or regions...",
+    allCategories: "All",
+    perQuintal: "per quintal",
+    demandLabel: "Demand",
+    trendLabel: "Trend",
+    nearbyBuyersLabel: "Active Buyers Nearby",
+    save: "Save",
+    saved: "Saved",
+    connectFarmer: "Connect",
+    yourFavourites: "Saved Produce",
+    noFavourites: "Nothing saved yet — tap Save on a listing.",
+    yourProfile: "Your Profile",
+  },
+
+  te: {
+    appTagline: "రైతులను మెరుగైన నిర్ణయాలు మరియు మెరుగైన మార్కెట్‌లతో అనుసంధానిస్తుంది.",
+    continuePrompt: "మీరు ఎలా కొనసాగించాలనుకుంటున్నారు?",
+    farmerRoleTitle: "నేను ఒక రైతును",
+    farmerRolePoints: [
+      "తెలివిగా పండించండి",
+      "పంటలను పర్యవేక్షించండి",
+      "AI సూచనలు పొందండి",
+      "మెరుగైన మార్కెట్ అవకాశాలను కనుగొనండి",
+    ],
+    buyerRoleTitle: "నేను కొనుగోలుదారుని",
+    buyerRolePoints: [
+      "పంట ఉత్పత్తులను కనుగొనండి",
+      "రైతులతో అనుసంధానం అవ్వండి",
+      "అందుబాటులో ఉన్న ఉత్పత్తులను పోల్చండి",
+      "కొనుగోళ్లను నిర్వహించండి",
+    ],
+
+    farmerLoginTitle: "తిరిగి స్వాగతం, రైతు",
+    buyerLoginTitle: "తిరిగి స్వాగతం, కొనుగోలుదారు",
+    mobileLabel: "మొబైల్ నంబర్",
+    mobilePlaceholder: "98765 43210",
+    sendOtp: "OTP పంపండి",
+    sending: "పంపుతోంది...",
+    invalidMobile: "దయచేసి సరైన 10-అంకెల మొబైల్ నంబర్‌ను నమోదు చేయండి.",
+    backToRoles: "← పాత్రను మార్చండి",
+
+    verifyTitle: "మీ మొబైల్ నంబర్‌ను ధృవీకరించండి",
+    otpSentTo: "కు పంపిన 6-అంకెల OTP నమోదు చేయండి",
+    demoModeBanner: "డెమో మోడ్ — నిజమైన SMS పంపబడలేదు.",
+    demoOtpLabel: "డెమో OTP (ఈ ప్రోటోటైప్‌లో మాత్రమే చూపబడుతుంది):",
+    verifyAndContinue: "ధృవీకరించి కొనసాగించండి",
+    verifying: "ధృవీకరిస్తోంది...",
+    resendOtp: "OTP మళ్ళీ పంపండి",
+    resendIn: "OTP మళ్ళీ పంపడానికి",
+    changeNumber: "మొబైల్ నంబర్‌ను మార్చండి",
+    otpIncomplete: "దయచేసి అన్ని 6 అంకెలను నమోదు చేయండి.",
+    otpIncorrect: "ఆ OTP సరిపోలలేదు. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+    otpExpired: "ఈ OTP గడువు ముగిసింది. దయచేసి కొత్తది కోరండి.",
+    otpTooManyAttempts: "చాలా తప్పు ప్రయత్నాలు. దయచేసి కొత్త OTP కోరండి.",
+    otpResent: "కొత్త డెమో OTP రూపొందించబడింది.",
+
+    farmerOnboardingTitle: "మీ రైతు ప్రొఫైల్‌ను సృష్టించండి",
+    buyerOnboardingTitle: "మీ కొనుగోలుదారు ప్రొఫైల్‌ను సృష్టించండి",
+    fullName: "పూర్తి పేరు",
+    businessName: "పేరు / వ్యాపార పేరు",
+    mobileVerified: "మొబైల్ నంబర్ (ధృవీకరించబడింది)",
+    location: "ప్రదేశం",
+    preferredLanguage: "ఇష్టపడే భాష",
+    landSize: "భూమి పరిమాణం (ఎకరాలు)",
+    mainCrops: "ప్రధాన పంట(లు)",
+    businessType: "వ్యాపార రకం",
+    productsInterested: "ఆసక్తి ఉన్న ఉత్పత్తులు",
+    createFarmerProfile: "రైతు ప్రొఫైల్‌ను సృష్టించండి",
+    createBuyerProfile: "కొనుగోలుదారు ప్రొఫైల్‌ను సృష్టించండి",
+    fieldRequired: "ఈ ఫీల్డ్ అవసరం.",
+    selectAtLeastOne: "దయచేసి కనీసం ఒకటి ఎంచుకోండి.",
+
+    logout: "లాగ్ అవుట్",
+    demoDataLabel: "సిమ్యులేటెడ్ డెమో డేటా",
+
+    buyerWelcome: "స్వాగతం",
+    buyerDashboardSubtitle: "ఉత్పత్తులను కనుగొనండి, ఆఫర్‌లను పోల్చండి, రైతులతో అనుసంధానం అవ్వండి.",
+    availableProduce: "అందుబాటులో ఉన్న ఉత్పత్తులు",
+    searchPlaceholder: "పంటలు లేదా ప్రాంతాలను శోధించండి...",
+    allCategories: "అన్నీ",
+    perQuintal: "ఒక క్వింటాల్‌కు",
+    demandLabel: "డిమాండ్",
+    trendLabel: "ధోరణి",
+    nearbyBuyersLabel: "సమీపంలో యాక్టివ్ కొనుగోలుదారులు",
+    save: "సేవ్ చేయండి",
+    saved: "సేవ్ చేయబడింది",
+    connectFarmer: "అనుసంధానం",
+    yourFavourites: "సేవ్ చేసిన ఉత్పత్తులు",
+    noFavourites: "ఇంకా ఏమీ సేవ్ చేయలేదు — లిస్టింగ్‌పై సేవ్ నొక్కండి.",
+    yourProfile: "మీ ప్రొఫైల్",
+  },
+
+  hi: {
+    appTagline: "किसानों को बेहतर निर्णयों और बेहतर बाज़ारों से जोड़ना।",
+    continuePrompt: "आप कैसे आगे बढ़ना चाहेंगे?",
+    farmerRoleTitle: "मैं एक किसान हूं",
+    farmerRolePoints: [
+      "समझदारी से खेती करें",
+      "फसलों की निगरानी करें",
+      "AI सुझाव पाएं",
+      "बेहतर बाज़ार अवसर खोजें",
+    ],
+    buyerRoleTitle: "मैं एक खरीदार हूं",
+    buyerRolePoints: [
+      "उपज खोजें",
+      "किसानों से जुड़ें",
+      "उपलब्ध उपज की तुलना करें",
+      "खरीद प्रबंधित करें",
+    ],
+
+    farmerLoginTitle: "वापसी पर स्वागत है, किसान",
+    buyerLoginTitle: "वापसी पर स्वागत है, खरीदार",
+    mobileLabel: "मोबाइल नंबर",
+    mobilePlaceholder: "98765 43210",
+    sendOtp: "OTP भेजें",
+    sending: "भेजा जा रहा है...",
+    invalidMobile: "कृपया एक मान्य 10-अंकों का मोबाइल नंबर दर्ज करें।",
+    backToRoles: "← भूमिका बदलें",
+
+    verifyTitle: "अपना मोबाइल नंबर सत्यापित करें",
+    otpSentTo: "पर भेजे गए 6-अंकों के OTP को दर्ज करें",
+    demoModeBanner: "डेमो मोड — कोई वास्तविक SMS नहीं भेजा जा रहा है।",
+    demoOtpLabel: "डेमो OTP (केवल इस प्रोटोटाइप में दिखाया गया):",
+    verifyAndContinue: "सत्यापित करें और जारी रखें",
+    verifying: "सत्यापित हो रहा है...",
+    resendOtp: "OTP फिर से भेजें",
+    resendIn: "OTP फिर से भेजें",
+    changeNumber: "मोबाइल नंबर बदलें",
+    otpIncomplete: "कृपया सभी 6 अंक दर्ज करें।",
+    otpIncorrect: "वह OTP मेल नहीं खाता। कृपया फिर से प्रयास करें।",
+    otpExpired: "यह OTP समाप्त हो गया है। कृपया एक नया अनुरोध करें।",
+    otpTooManyAttempts: "बहुत सारे गलत प्रयास। कृपया एक नया OTP मांगें।",
+    otpResent: "एक नया डेमो OTP जनरेट किया गया है।",
+
+    farmerOnboardingTitle: "अपनी किसान प्रोफ़ाइल बनाएं",
+    buyerOnboardingTitle: "अपनी खरीदार प्रोफ़ाइल बनाएं",
+    fullName: "पूरा नाम",
+    businessName: "नाम / व्यवसाय का नाम",
+    mobileVerified: "मोबाइल नंबर (सत्यापित)",
+    location: "स्थान",
+    preferredLanguage: "पसंदीदा भाषा",
+    landSize: "भूमि का आकार (एकड़)",
+    mainCrops: "मुख्य फसल(ें)",
+    businessType: "व्यवसाय का प्रकार",
+    productsInterested: "रुचि के उत्पाद",
+    createFarmerProfile: "किसान प्रोफ़ाइल बनाएं",
+    createBuyerProfile: "खरीदार प्रोफ़ाइल बनाएं",
+    fieldRequired: "यह फ़ील्ड आवश्यक है।",
+    selectAtLeastOne: "कृपया कम से कम एक चुनें।",
+
+    logout: "लॉगआउट",
+    demoDataLabel: "सिम्युलेटेड डेमो डेटा",
+
+    buyerWelcome: "स्वागत है",
+    buyerDashboardSubtitle: "उपज खोजें, ऑफ़र की तुलना करें, किसानों से जुड़ें।",
+    availableProduce: "उपलब्ध उपज",
+    searchPlaceholder: "फसलें या क्षेत्र खोजें...",
+    allCategories: "सभी",
+    perQuintal: "प्रति क्विंटल",
+    demandLabel: "मांग",
+    trendLabel: "रुझान",
+    nearbyBuyersLabel: "नज़दीकी सक्रिय खरीदार",
+    save: "सेव करें",
+    saved: "सेव किया गया",
+    connectFarmer: "जुड़ें",
+    yourFavourites: "सेव की गई उपज",
+    noFavourites: "अभी तक कुछ भी सेव नहीं हुआ — किसी लिस्टिंग पर सेव दबाएं।",
+    yourProfile: "आपकी प्रोफ़ाइल",
+  },
+};
+
+const languageOptions = [
+  { code: "en", label: "English" },
+  { code: "te", label: "తెలుగు" },
+  { code: "hi", label: "हिंदी" },
+];
+
+
+/* ============================================================
+   FROM: context/AuthContext.jsx
+   ============================================================ */
+
+/*
+ * ⚠️ PROTOTYPE AUTHENTICATION — NOT PRODUCTION SECURITY ⚠️
+ *
+ * This context simulates OTP-based login entirely on the frontend so the
+ * KisanSetu demo can show a complete auth flow without a backend.
+ *
+ * - No SMS is ever sent. sendDemoOTP() generates a code and hands it back
+ *   to the UI so it can be displayed on-screen with a "Demo mode" banner.
+ * - Session data (role, mobile, profile) lives in localStorage in plain
+ *   text. This is NOT secure storage and must never be treated as one.
+ * - Before shipping this to real users, replace sendDemoOTP()/verifyDemoOTP()
+ *   below with real calls to:
+ *       POST /api/auth/send-otp    { mobile }
+ *       POST /api/auth/verify-otp  { mobile, otp }
+ *   and move session issuance (e.g. a signed JWT/session cookie) to the
+ *   server. Nothing here should be reused as-is for production auth.
+ */
+
+const AuthContext = createContext(null);
+
+const SESSION_KEY = "kisansetu_session";
+const OTP_TTL_MS = 60 * 1000; // demo OTP validity window
+const MAX_ATTEMPTS = 5;
+
+const ROLES = {
+  FARMER: "FARMER",
+  BUYER: "BUYER",
+};
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.role || !parsed.mobile) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(session) {
+  try {
+    if (session) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    } else {
+      localStorage.removeItem(SESSION_KEY);
+    }
+  } catch {
+    // localStorage unavailable (private browsing, quota, etc.) — the
+    // session simply won't persist across a refresh in that case.
+  }
+}
+
+function generateDemoOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function AuthProvider({ children }) {
+  const [session, setSession] = useState(() => loadSession());
+
+  // Transient state for whatever login is currently in progress —
+  // never persisted, cleared on success/cancel.
+  const [pendingOtp, setPendingOtp] = useState(null); // { role, mobile, code, expiresAt, attempts }
+
+  useEffect(() => {
+    saveSession(session);
+  }, [session]);
+
+  const sendDemoOTP = (role, mobile) => {
+    // --- Replace with: await api.post('/api/auth/send-otp', { mobile }) ---
+    const code = generateDemoOtp();
+    setPendingOtp({
+      role,
+      mobile,
+      code,
+      expiresAt: Date.now() + OTP_TTL_MS,
+      attempts: 0,
+    });
+    return { demoOtp: code };
+  };
+
+  const resendDemoOTP = () => {
+    if (!pendingOtp) return null;
+    const code = generateDemoOtp();
+    setPendingOtp((prev) => ({
+      ...prev,
+      code,
+      expiresAt: Date.now() + OTP_TTL_MS,
+      attempts: 0,
+    }));
+    return { demoOtp: code };
+  };
+
+  const changeNumberDuringOtp = () => {
+    setPendingOtp(null);
+  };
+
+  // Returns { ok: true } or { ok: false, reason: 'expired' | 'incorrect' | 'locked' }
+  const verifyDemoOTP = (enteredOtp) => {
+    // --- Replace with: await api.post('/api/auth/verify-otp', { mobile, otp }) ---
+    if (!pendingOtp) return { ok: false, reason: "incorrect" };
+
+    if (pendingOtp.attempts >= MAX_ATTEMPTS) {
+      return { ok: false, reason: "locked" };
+    }
+
+    if (Date.now() > pendingOtp.expiresAt) {
+      return { ok: false, reason: "expired" };
+    }
+
+    if (enteredOtp !== pendingOtp.code) {
+      setPendingOtp((prev) => ({ ...prev, attempts: prev.attempts + 1 }));
+      return { ok: false, reason: "incorrect" };
+    }
+
+    // Success — do we already have a saved demo profile for this mobile?
+    const existingProfile = loadStoredProfile(pendingOtp.role, pendingOtp.mobile);
+
+    setSession({
+      role: pendingOtp.role,
+      mobile: pendingOtp.mobile,
+      profile: existingProfile || null,
+    });
+
+    setPendingOtp(null);
+
+    return { ok: true, hasProfile: Boolean(existingProfile) };
+  };
+
+  const completeOnboarding = (profileData) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, profile: profileData };
+      saveStoredProfile(prev.role, prev.mobile, profileData);
+      return next;
+    });
+  };
+
+  const logout = () => {
+    setSession(null);
+    setPendingOtp(null);
+  };
+
+  const value = useMemo(
+    () => ({
+      isAuthenticated: Boolean(session),
+      hasProfile: Boolean(session?.profile),
+      role: session?.role || null,
+      mobile: session?.mobile || null,
+      profile: session?.profile || null,
+      pendingOtp,
+      sendDemoOTP,
+      resendDemoOTP,
+      verifyDemoOTP,
+      changeNumberDuringOtp,
+      completeOnboarding,
+      logout,
+    }),
+    [session, pendingOtp]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
+  return ctx;
+}
+
+// Demo profile "database" — keyed by role+mobile so returning demo users
+// skip onboarding on their next login. Still just localStorage.
+function profileKey(role, mobile) {
+  return `kisansetu_profile_${role}_${mobile}`;
+}
+
+function loadStoredProfile(role, mobile) {
+  try {
+    const raw = localStorage.getItem(profileKey(role, mobile));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveStoredProfile(role, mobile, profile) {
+  try {
+    localStorage.setItem(profileKey(role, mobile), JSON.stringify(profile));
+  } catch {
+    // best-effort demo persistence only
+  }
+}
+
+
+/* ============================================================
+   FROM: components/auth/LanguageSelector.jsx
+   ============================================================ */
+
+function LanguageSelector({ language, onChange, className = "" }) {
+  return (
+    <select
+      className={`language-select ${className}`}
+      value={language}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label="Language"
+    >
+      {languageOptions.map((opt) => (
+        <option key={opt.code} value={opt.code}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+
+/* ============================================================
+   FROM: components/auth/RoleSelection.jsx
+   ============================================================ */
+
+function RoleSelection({ language, setLanguage, onSelectRole }) {
+  const at = authTranslations[language];
+
+  return (
+    <div className="auth-screen role-select-screen">
+      <div className="auth-topbar">
+        <div className="logo">
+          <span className="logo-mark">
+            <span className="logo-leaf" />
+          </span>
+          <span className="logo-text">
+            Kisan<span>Setu</span>
+          </span>
+        </div>
+        <LanguageSelector language={language} onChange={setLanguage} />
+      </div>
+
+      <div className="auth-card role-select-card">
+        <div className="role-select-hero">
+          <h1>
+            🌾 Kisan<span>Setu</span>
+          </h1>
+          <p>{at.appTagline}</p>
+        </div>
+
+        <h2 className="role-select-prompt">{at.continuePrompt}</h2>
+
+        <div className="role-options">
+          <button
+            className="role-option farmer-role"
+            onClick={() => onSelectRole(ROLES.FARMER)}
+          >
+            <span className="role-emoji">👨‍🌾</span>
+            <span className="role-title">{at.farmerRoleTitle}</span>
+            <ul>
+              {at.farmerRolePoints.map((point) => (
+                <li key={point}>{point}</li>
+              ))}
+            </ul>
+          </button>
+
+          <button
+            className="role-option buyer-role"
+            onClick={() => onSelectRole(ROLES.BUYER)}
+          >
+            <span className="role-emoji">🛒</span>
+            <span className="role-title">{at.buyerRoleTitle}</span>
+            <ul>
+              {at.buyerRolePoints.map((point) => (
+                <li key={point}>{point}</li>
+              ))}
+            </ul>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   FROM: components/auth/MobileLoginForm.jsx
+   ============================================================ */
+
+const INDIAN_MOBILE_REGEX = /^[6-9]\d{9}$/;
+
+function MobileLoginForm({
+  language,
+  setLanguage,
+  role, // "FARMER" | "BUYER"
+  title,
+  themeClass, // "farmer-theme" | "buyer-theme"
+  onBack,
+  onSendOtp, // (mobile) => Promise-ish / sync
+}) {
+  const at = authTranslations[language];
+  const [mobile, setMobile] = useState("");
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const handleMobileChange = (e) => {
+    const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
+    setMobile(digitsOnly);
+    if (error) setError("");
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!INDIAN_MOBILE_REGEX.test(mobile)) {
+      setError(at.invalidMobile);
+      return;
+    }
+
+    setSending(true);
+    // Simulated network delay so the "Sending..." state is visible in the demo.
+    setTimeout(() => {
+      setSending(false);
+      onSendOtp(mobile);
+    }, 500);
+  };
+
+  return (
+    <div className={`auth-screen login-screen ${themeClass}`}>
+      <div className="auth-topbar">
+        <button className="link-button" onClick={onBack}>
+          {at.backToRoles}
+        </button>
+        <LanguageSelector language={language} onChange={setLanguage} />
+      </div>
+
+      <div className="auth-card">
+        <h1 className="auth-title">{title}</h1>
+
+        <form onSubmit={handleSubmit} noValidate>
+          <label className="field-label" htmlFor="mobile-input">
+            {at.mobileLabel}
+          </label>
+
+          <div className="mobile-input-row">
+            <span className="country-code">+91</span>
+            <input
+              id="mobile-input"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              placeholder={at.mobilePlaceholder}
+              value={mobile}
+              onChange={handleMobileChange}
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "mobile-error" : undefined}
+            />
+          </div>
+
+          {error && (
+            <p id="mobile-error" className="field-error" role="alert">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className={`primary-button auth-submit ${sending ? "is-loading" : ""}`}
+            disabled={sending}
+          >
+            {sending ? at.sending : at.sendOtp}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   FROM: components/auth/FarmerLogin.jsx
+   ============================================================ */
+
+function FarmerLogin({ language, setLanguage, onBack, onSendOtp }) {
+  const at = authTranslations[language];
+  return (
+    <MobileLoginForm
+      language={language}
+      setLanguage={setLanguage}
+      role={ROLES.FARMER}
+      title={at.farmerLoginTitle}
+      themeClass="farmer-theme"
+      onBack={onBack}
+      onSendOtp={onSendOtp}
+    />
+  );
+}
+
+
+/* ============================================================
+   FROM: components/auth/BuyerLogin.jsx
+   ============================================================ */
+
+function BuyerLogin({ language, setLanguage, onBack, onSendOtp }) {
+  const at = authTranslations[language];
+  return (
+    <MobileLoginForm
+      language={language}
+      setLanguage={setLanguage}
+      role={ROLES.BUYER}
+      title={at.buyerLoginTitle}
+      themeClass="buyer-theme"
+      onBack={onBack}
+      onSendOtp={onSendOtp}
+    />
+  );
+}
+
+
+/* ============================================================
+   FROM: components/auth/OTPVerification.jsx
+   ============================================================ */
+
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN = 30; // seconds
+
+function OTPVerification({
+  language,
+  setLanguage,
+  themeClass,
+  onVerified,
+  onChangeNumber,
+}) {
+  const at = authTranslations[language];
+  const { pendingOtp, verifyDemoOTP, resendDemoOTP } = useAuth();
+
+  const [digits, setDigits] = useState(Array(OTP_LENGTH).fill(""));
+  const [error, setError] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN);
+  const [visibleDemoOtp, setVisibleDemoOtp] = useState(pendingOtp?.code || "");
+  const [justResent, setJustResent] = useState(false);
+  const inputsRef = useRef([]);
+
+  useEffect(() => {
+    if (pendingOtp?.code) setVisibleDemoOtp(pendingOtp.code);
+  }, [pendingOtp?.code]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  useEffect(() => {
+    inputsRef.current[0]?.focus();
+  }, []);
+
+  if (!pendingOtp) return null;
+
+  const formattedMobile = `+91 ${pendingOtp.mobile.slice(0, 5)} ${pendingOtp.mobile.slice(5)}`;
+
+  const handleDigitChange = (index, value) => {
+    const clean = value.replace(/\D/g, "");
+    if (!clean) {
+      const next = [...digits];
+      next[index] = "";
+      setDigits(next);
+      return;
+    }
+
+    const next = [...digits];
+    next[index] = clean.slice(-1);
+    setDigits(next);
+
+    if (index < OTP_LENGTH - 1) {
+      inputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !digits[index] && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
+    if (!pasted) return;
+    e.preventDefault();
+    const next = Array(OTP_LENGTH).fill("");
+    pasted.split("").forEach((d, i) => (next[i] = d));
+    setDigits(next);
+    inputsRef.current[Math.min(pasted.length, OTP_LENGTH - 1)]?.focus();
+  };
+
+  const handleVerify = (e) => {
+    e.preventDefault();
+    const code = digits.join("");
+
+    if (code.length < OTP_LENGTH) {
+      setError(at.otpIncomplete);
+      return;
+    }
+
+    setVerifying(true);
+    setTimeout(() => {
+      const result = verifyDemoOTP(code);
+      setVerifying(false);
+
+      if (result.ok) {
+        onVerified(result.hasProfile);
+        return;
+      }
+
+      if (result.reason === "expired") setError(at.otpExpired);
+      else if (result.reason === "locked") setError(at.otpTooManyAttempts);
+      else setError(at.otpIncorrect);
+
+      setDigits(Array(OTP_LENGTH).fill(""));
+      inputsRef.current[0]?.focus();
+    }, 400);
+  };
+
+  const handleResend = () => {
+    if (resendCooldown > 0) return;
+    resendDemoOTP();
+    setDigits(Array(OTP_LENGTH).fill(""));
+    setError("");
+    setResendCooldown(RESEND_COOLDOWN);
+    setJustResent(true);
+    inputsRef.current[0]?.focus();
+    setTimeout(() => setJustResent(false), 2500);
+  };
+
+  return (
+    <div className={`auth-screen otp-screen ${themeClass}`}>
+      <div className="auth-topbar">
+        <button className="link-button" onClick={onChangeNumber}>
+          {at.changeNumber}
+        </button>
+        <LanguageSelector language={language} onChange={setLanguage} />
+      </div>
+
+      <div className="auth-card">
+        <h1 className="auth-title">{at.verifyTitle}</h1>
+        <p className="otp-subtitle">
+          {at.otpSentTo} <strong>{formattedMobile}</strong>
+        </p>
+
+        <div className="demo-banner">
+          <span>📵</span> {at.demoModeBanner}
+        </div>
+
+        {visibleDemoOtp && (
+          <div className="demo-otp-reveal">
+            {at.demoOtpLabel} <strong>{visibleDemoOtp}</strong>
+          </div>
+        )}
+
+        {justResent && <p className="info-note">{at.otpResent}</p>}
+
+        <form onSubmit={handleVerify} noValidate>
+          <div className="otp-boxes" onPaste={handlePaste}>
+            {digits.map((digit, index) => (
+              <input
+                key={index}
+                ref={(el) => (inputsRef.current[index] = el)}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                className="otp-box"
+                value={digit}
+                onChange={(e) => handleDigitChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                aria-label={`OTP digit ${index + 1}`}
+              />
+            ))}
+          </div>
+
+          {error && (
+            <p className="field-error" role="alert">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className={`primary-button auth-submit ${verifying ? "is-loading" : ""}`}
+            disabled={verifying}
+          >
+            {verifying ? at.verifying : at.verifyAndContinue}
+          </button>
+        </form>
+
+        <div className="otp-footer-actions">
+          {resendCooldown > 0 ? (
+            <span className="resend-timer">
+              {at.resendIn} {resendCooldown}s
+            </span>
+          ) : (
+            <button className="link-button" onClick={handleResend}>
+              {at.resendOtp}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   FROM: components/auth/FarmerOnboarding.jsx
+   ============================================================ */
+
+const CROP_OPTIONS = [
+  "Tomato", "Onion", "Wheat", "Rice", "Cotton",
+  "Tea", "Sugarcane", "Turmeric", "Coffee", "Jute", "Groundnut",
+];
+
+function FarmerOnboarding({ language, setLanguage, mobile, onComplete }) {
+  const at = authTranslations[language];
+
+  const [fullName, setFullName] = useState("");
+  const [location, setLocation] = useState("");
+  const [preferredLanguage, setPreferredLanguage] = useState(language);
+  const [landSize, setLandSize] = useState("");
+  const [mainCrops, setMainCrops] = useState([]);
+  const [errors, setErrors] = useState({});
+
+  const toggleCrop = (crop) => {
+    setMainCrops((prev) =>
+      prev.includes(crop) ? prev.filter((c) => c !== crop) : [...prev, crop]
+    );
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const nextErrors = {};
+
+    if (!fullName.trim()) nextErrors.fullName = at.fieldRequired;
+    if (!location.trim()) nextErrors.location = at.fieldRequired;
+    if (mainCrops.length === 0) nextErrors.mainCrops = at.selectAtLeastOne;
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    onComplete({
+      name: fullName.trim(),
+      mobile,
+      location: location.trim(),
+      preferredLanguage,
+      landSize: landSize ? Number(landSize) : null,
+      mainCrops,
+    });
+  };
+
+  return (
+    <div className="auth-screen onboarding-screen farmer-theme">
+      <div className="auth-topbar">
+        <div className="logo-text small">
+          Kisan<span>Setu</span>
+        </div>
+        <LanguageSelector language={language} onChange={setLanguage} />
+      </div>
+
+      <div className="auth-card onboarding-card">
+        <h1 className="auth-title">{at.farmerOnboardingTitle}</h1>
+
+        <form onSubmit={handleSubmit} noValidate>
+          <label className="field-label" htmlFor="farmer-name">{at.fullName}</label>
+          <input
+            id="farmer-name"
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            aria-invalid={Boolean(errors.fullName)}
+          />
+          {errors.fullName && <p className="field-error">{errors.fullName}</p>}
+
+          <label className="field-label">{at.mobileVerified}</label>
+          <div className="readonly-field">+91 {mobile} ✓</div>
+
+          <label className="field-label" htmlFor="farmer-location">{at.location}</label>
+          <input
+            id="farmer-location"
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            aria-invalid={Boolean(errors.location)}
+          />
+          {errors.location && <p className="field-error">{errors.location}</p>}
+
+          <label className="field-label" htmlFor="farmer-language">{at.preferredLanguage}</label>
+          <select
+            id="farmer-language"
+            value={preferredLanguage}
+            onChange={(e) => setPreferredLanguage(e.target.value)}
+          >
+            {languageOptions.map((opt) => (
+              <option key={opt.code} value={opt.code}>{opt.label}</option>
+            ))}
+          </select>
+
+          <label className="field-label" htmlFor="farmer-land">{at.landSize}</label>
+          <input
+            id="farmer-land"
+            type="number"
+            min="0"
+            step="0.1"
+            value={landSize}
+            onChange={(e) => setLandSize(e.target.value)}
+          />
+
+          <label className="field-label">{at.mainCrops}</label>
+          <div className="chip-select">
+            {CROP_OPTIONS.map((crop) => (
+              <button
+                type="button"
+                key={crop}
+                className={`chip ${mainCrops.includes(crop) ? "chip-selected" : ""}`}
+                onClick={() => toggleCrop(crop)}
+              >
+                {crop}
+              </button>
+            ))}
+          </div>
+          {errors.mainCrops && <p className="field-error">{errors.mainCrops}</p>}
+
+          <button type="submit" className="primary-button auth-submit">
+            {at.createFarmerProfile}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   FROM: components/auth/BuyerOnboarding.jsx
+   ============================================================ */
+
+const PRODUCT_OPTIONS = [
+  "Tomato", "Onion", "Wheat", "Rice", "Cotton",
+  "Tea", "Sugarcane", "Turmeric", "Coffee", "Jute", "Groundnut",
+];
+
+const BUSINESS_TYPES = [
+  "Wholesale Buyer", "Retail Chain", "Food Processor", "Exporter", "Individual Buyer",
+];
+
+function BuyerOnboarding({ language, setLanguage, mobile, onComplete }) {
+  const at = authTranslations[language];
+
+  const [businessName, setBusinessName] = useState("");
+  const [businessType, setBusinessType] = useState(BUSINESS_TYPES[0]);
+  const [location, setLocation] = useState("");
+  const [preferredLanguage, setPreferredLanguage] = useState(language);
+  const [productsInterested, setProductsInterested] = useState([]);
+  const [errors, setErrors] = useState({});
+
+  const toggleProduct = (product) => {
+    setProductsInterested((prev) =>
+      prev.includes(product) ? prev.filter((p) => p !== product) : [...prev, product]
+    );
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const nextErrors = {};
+
+    if (!businessName.trim()) nextErrors.businessName = at.fieldRequired;
+    if (!location.trim()) nextErrors.location = at.fieldRequired;
+    if (productsInterested.length === 0) nextErrors.productsInterested = at.selectAtLeastOne;
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    onComplete({
+      name: businessName.trim(),
+      mobile,
+      businessType,
+      location: location.trim(),
+      preferredLanguage,
+      productsInterested,
+    });
+  };
+
+  return (
+    <div className="auth-screen onboarding-screen buyer-theme">
+      <div className="auth-topbar">
+        <div className="logo-text small">
+          Kisan<span>Setu</span>
+        </div>
+        <LanguageSelector language={language} onChange={setLanguage} />
+      </div>
+
+      <div className="auth-card onboarding-card">
+        <h1 className="auth-title">{at.buyerOnboardingTitle}</h1>
+
+        <form onSubmit={handleSubmit} noValidate>
+          <label className="field-label" htmlFor="buyer-name">{at.businessName}</label>
+          <input
+            id="buyer-name"
+            type="text"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            aria-invalid={Boolean(errors.businessName)}
+          />
+          {errors.businessName && <p className="field-error">{errors.businessName}</p>}
+
+          <label className="field-label">{at.mobileVerified}</label>
+          <div className="readonly-field">+91 {mobile} ✓</div>
+
+          <label className="field-label" htmlFor="buyer-type">{at.businessType}</label>
+          <select
+            id="buyer-type"
+            value={businessType}
+            onChange={(e) => setBusinessType(e.target.value)}
+          >
+            {BUSINESS_TYPES.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+
+          <label className="field-label" htmlFor="buyer-location">{at.location}</label>
+          <input
+            id="buyer-location"
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            aria-invalid={Boolean(errors.location)}
+          />
+          {errors.location && <p className="field-error">{errors.location}</p>}
+
+          <label className="field-label" htmlFor="buyer-language">{at.preferredLanguage}</label>
+          <select
+            id="buyer-language"
+            value={preferredLanguage}
+            onChange={(e) => setPreferredLanguage(e.target.value)}
+          >
+            {languageOptions.map((opt) => (
+              <option key={opt.code} value={opt.code}>{opt.label}</option>
+            ))}
+          </select>
+
+          <label className="field-label">{at.productsInterested}</label>
+          <div className="chip-select">
+            {PRODUCT_OPTIONS.map((product) => (
+              <button
+                type="button"
+                key={product}
+                className={`chip ${productsInterested.includes(product) ? "chip-selected" : ""}`}
+                onClick={() => toggleProduct(product)}
+              >
+                {product}
+              </button>
+            ))}
+          </div>
+          {errors.productsInterested && <p className="field-error">{errors.productsInterested}</p>}
+
+          <button type="submit" className="primary-button auth-submit">
+            {at.createBuyerProfile}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   FROM: components/buyer/BuyerDashboard.jsx
+   ============================================================ */
+
+// Demo produce listings. In production this would come from
+// GET /api/produce/listings (farmer-submitted, backend-verified).
+const DEMO_LISTINGS = [
+  { crop: "Tomato", region: "Chevella, Telangana", price: 2380, demand: 82, trend: 12, farmer: "Ramesh Kumar", quantity: 50 },
+  { crop: "Onion", region: "Nashik, Maharashtra", price: 1940, demand: 74, trend: 7, farmer: "Suresh Patil", quantity: 80 },
+  { crop: "Rice", region: "Warangal, Telangana", price: 3150, demand: 88, trend: 15, farmer: "Lakshmi Devi", quantity: 120 },
+  { crop: "Cotton", region: "Nagpur, Maharashtra", price: 7260, demand: 79, trend: 9, farmer: "Vijay Deshmukh", quantity: 30 },
+  { crop: "Turmeric", region: "Nizamabad, Telangana", price: 9850, demand: 69, trend: 8, farmer: "Anitha Reddy", quantity: 15 },
+  { crop: "Wheat", region: "Ludhiana, Punjab", price: 2470, demand: 68, trend: 4, farmer: "Gurpreet Singh", quantity: 90 },
+  { crop: "Groundnut", region: "Junagadh, Gujarat", price: 6340, demand: 70, trend: 6, farmer: "Bhavesh Patel", quantity: 40 },
+  { crop: "Coffee", region: "Chikmagalur, Karnataka", price: 15250, demand: 73, trend: 5, farmer: "Manjunath Gowda", quantity: 10 },
+];
+
+const NEARBY_FARMERS_COUNT = 132;
+
+const formatBuyerCurrency = (value) => `₹${Math.round(value).toLocaleString("en-IN")}`;
+
+function BuyerDashboard({ language, setLanguage, profile, onLogout }) {
+  const at = authTranslations[language];
+
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [saved, setSaved] = useState([]);
+  const [activeTab, setActiveTab] = useState("discover");
+
+  const categories = useMemo(
+    () => ["all", ...new Set(DEMO_LISTINGS.map((l) => l.crop))],
+    []
+  );
+
+  const filteredListings = useMemo(() => {
+    return DEMO_LISTINGS.filter((listing) => {
+      const matchesCategory = category === "all" || listing.crop === category;
+      const matchesSearch =
+        !search.trim() ||
+        listing.crop.toLowerCase().includes(search.toLowerCase()) ||
+        listing.region.toLowerCase().includes(search.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [search, category]);
+
+  const toggleSave = (crop, region) => {
+    const key = `${crop}__${region}`;
+    setSaved((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const isSaved = (crop, region) => saved.includes(`${crop}__${region}`);
+  const savedListings = DEMO_LISTINGS.filter((l) => isSaved(l.crop, l.region));
+
+  return (
+    <div className="app buyer-app">
+      <header className="navbar buyer-navbar">
+        <div className="nav-container">
+          <div className="logo">
+            <span className="logo-mark buyer-mark">
+              <span className="logo-leaf" />
+            </span>
+            <span className="logo-text">
+              Kisan<span>Setu</span>
+            </span>
+          </div>
+
+          <nav className="nav-links">
+            <button
+              className={activeTab === "discover" ? "active" : ""}
+              onClick={() => setActiveTab("discover")}
+            >
+              {at.availableProduce}
+            </button>
+            <button
+              className={activeTab === "saved" ? "active" : ""}
+              onClick={() => setActiveTab("saved")}
+            >
+              {at.yourFavourites}
+            </button>
+            <button
+              className={activeTab === "profile" ? "active" : ""}
+              onClick={() => setActiveTab("profile")}
+            >
+              {at.yourProfile}
+            </button>
+          </nav>
+
+          <div className="nav-actions">
+            <select
+              className="language-select"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+            >
+              {languageOptions.map((opt) => (
+                <option key={opt.code} value={opt.code}>{opt.label}</option>
+              ))}
+            </select>
+            <button className="logout-button" onClick={onLogout}>Logout</button>
+          </div>
+        </div>
+      </header>
+
+      <section className="buyer-hero page-container">
+        <h1>{at.buyerWelcome}, {profile?.name || "Buyer"} 👋</h1>
+        <p>{at.buyerDashboardSubtitle}</p>
+
+        <div className="buyer-stat-strip">
+          <div className="buyer-stat">
+            <span>{at.nearbyBuyersLabel}</span>
+            <strong>{NEARBY_FARMERS_COUNT}+</strong>
+          </div>
+          <div className="buyer-stat">
+            <span>{at.availableProduce}</span>
+            <strong>{DEMO_LISTINGS.length}</strong>
+          </div>
+          <span className="demo-tag">{at.demoDataLabel}</span>
+        </div>
+      </section>
+
+      {activeTab === "discover" && (
+        <main className="page-container inner-page">
+          <div className="buyer-filters">
+            <input
+              type="text"
+              className="buyer-search"
+              placeholder={at.searchPlaceholder}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            <div className="chip-select">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  className={`chip ${category === cat ? "chip-selected" : ""}`}
+                  onClick={() => setCategory(cat)}
+                >
+                  {cat === "all" ? at.allCategories : cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="listings-grid">
+            {filteredListings.map((listing) => (
+              <div className="listing-card" key={`${listing.crop}-${listing.region}`}>
+                <div className="listing-card-top">
+                  <h3>{listing.crop}</h3>
+                  <button
+                    className={`save-toggle ${isSaved(listing.crop, listing.region) ? "saved" : ""}`}
+                    onClick={() => toggleSave(listing.crop, listing.region)}
+                  >
+                    {isSaved(listing.crop, listing.region) ? `★ ${at.saved}` : `☆ ${at.save}`}
+                  </button>
+                </div>
+
+                <p className="listing-region">{listing.region}</p>
+                <p className="listing-farmer">👤 {listing.farmer}</p>
+
+                <div className="listing-price-row">
+                  <strong>{formatBuyerCurrency(listing.price)}</strong>
+                  <span>/q · {at.perQuintal}</span>
+                </div>
+
+                <div className="listing-meta-row">
+                  <span>{at.demandLabel}: {listing.demand}/100</span>
+                  <span className="positive">{at.trendLabel}: +{listing.trend}%</span>
+                </div>
+
+                <div className="listing-meta-row">
+                  <span>{listing.quantity} q available</span>
+                </div>
+
+                <button className="secondary-button connect-button">
+                  {at.connectFarmer}
+                </button>
+              </div>
+            ))}
+          </div>
+        </main>
+      )}
+
+      {activeTab === "saved" && (
+        <main className="page-container inner-page">
+          <h2>{at.yourFavourites}</h2>
+          {savedListings.length === 0 ? (
+            <p className="empty-state">{at.noFavourites}</p>
+          ) : (
+            <div className="listings-grid">
+              {savedListings.map((listing) => (
+                <div className="listing-card" key={`saved-${listing.crop}-${listing.region}`}>
+                  <h3>{listing.crop}</h3>
+                  <p className="listing-region">{listing.region}</p>
+                  <div className="listing-price-row">
+                    <strong>{formatBuyerCurrency(listing.price)}</strong>
+                    <span>/q</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      )}
+
+      {activeTab === "profile" && (
+        <main className="page-container inner-page">
+          <h2>{at.yourProfile}</h2>
+          <div className="profile-summary-card">
+            <p><strong>{at.businessName}:</strong> {profile?.name}</p>
+            <p><strong>{at.businessType}:</strong> {profile?.businessType}</p>
+            <p><strong>{at.location}:</strong> {profile?.location}</p>
+            <p><strong>{at.mobileVerified}:</strong> +91 {profile?.mobile} ✓</p>
+            <p><strong>{at.productsInterested}:</strong> {(profile?.productsInterested || []).join(", ")}</p>
+          </div>
+        </main>
+      )}
+    </div>
+  );
+}
+
+
+/* ============================================================
+   FROM: FarmerApp.jsx
+   ============================================================ */
 
 const crops = {
   Tomato: { base: 2200, demand: 82, trend: 12, buyers: 18, region: "Telangana / Andhra Pradesh" },
@@ -54,9 +1410,10 @@ const buyers = [
   },
 ];
 
-// Mocked "current farmer" trust profile — in a real build this comes
-// from the farmer's account history, not hardcoded.
-const farmerProfile = {
+// Mocked "current farmer" trust/track-record profile. Name and village
+// are overridden with the real onboarding data (see FarmerApp below);
+// the sales-history numbers stay simulated since there is no backend yet.
+const mockFarmerProfile = {
   name: "Ramesh Kumar",
   village: "Chevella, Vikarabad",
   pastSales: 24,
@@ -525,7 +1882,7 @@ const translations = {
 const formatCurrency = (value) =>
   `₹${Math.round(value).toLocaleString("en-IN")}`;
 
-function App() {
+function FarmerApp({ farmerProfile: authFarmerProfile, onLogout }) {
   const [language, setLanguage] = useState("en");
   const t = translations[language];
 
@@ -542,6 +1899,19 @@ function App() {
   const [saleCompleted, setSaleCompleted] = useState(false);
   const [saleReference, setSaleReference] = useState("");
   const [paymentLocked, setPaymentLocked] = useState(false);
+
+  // Real name/location from onboarding, layered over the simulated
+  // track-record numbers (pastSales, rating, etc.) until a backend exists.
+  const farmerProfile = useMemo(
+    () => ({
+      ...mockFarmerProfile,
+      ...(authFarmerProfile?.name ? { name: authFarmerProfile.name } : {}),
+      ...(authFarmerProfile?.location
+        ? { village: authFarmerProfile.location }
+        : {}),
+    }),
+    [authFarmerProfile]
+  );
 
   const farmerTierKey = useMemo(
     () =>
@@ -835,6 +2205,12 @@ function App() {
               <option value="te">తెలుగు</option>
               <option value="hi">हिन्दी</option>
             </select>
+
+            {onLogout && (
+              <button className="logout-button" onClick={onLogout}>
+                Logout
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -1923,6 +3299,160 @@ function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+
+/* ============================================================
+   FROM: App.jsx
+   ============================================================ */
+
+// Screens: "role-select" | "farmer-login" | "buyer-login" | "otp"
+//        | "onboarding" | "dashboard"
+function AppShell() {
+  const auth = useAuth();
+  const [screen, setScreen] = useState(null);
+  const [language, setLanguage] = useState("en");
+
+  // Decide where to land on first load / after a refresh, based on
+  // whatever session AuthContext restored from localStorage.
+  useEffect(() => {
+    if (screen !== null) return;
+    if (auth.isAuthenticated && auth.hasProfile) setScreen("dashboard");
+    else if (auth.isAuthenticated && !auth.hasProfile) setScreen("onboarding");
+    else setScreen("role-select");
+  }, [auth.isAuthenticated, auth.hasProfile, screen]);
+
+  if (screen === null) return null;
+
+  const goToRoleSelect = () => setScreen("role-select");
+
+  const handleSelectRole = (role) => {
+    setScreen(role === ROLES.FARMER ? "farmer-login" : "buyer-login");
+  };
+
+  const handleSendOtp = (role, mobile) => {
+    auth.sendDemoOTP(role, mobile);
+    setScreen("otp");
+  };
+
+  const handleOtpVerified = (hasProfile) => {
+    setScreen(hasProfile ? "dashboard" : "onboarding");
+  };
+
+  const handleChangeNumber = () => {
+    const role = auth.pendingOtp?.role;
+    auth.changeNumberDuringOtp();
+    setScreen(role === ROLES.BUYER ? "buyer-login" : "farmer-login");
+  };
+
+  const handleOnboardingComplete = (profileData) => {
+    auth.completeOnboarding(profileData);
+    setScreen("dashboard");
+  };
+
+  const handleLogout = () => {
+    auth.logout();
+    setScreen("role-select");
+  };
+
+  switch (screen) {
+    case "role-select":
+      return (
+        <RoleSelection
+          language={language}
+          setLanguage={setLanguage}
+          onSelectRole={handleSelectRole}
+        />
+      );
+
+    case "farmer-login":
+      return (
+        <FarmerLogin
+          language={language}
+          setLanguage={setLanguage}
+          onBack={goToRoleSelect}
+          onSendOtp={(mobile) => handleSendOtp(ROLES.FARMER, mobile)}
+        />
+      );
+
+    case "buyer-login":
+      return (
+        <BuyerLogin
+          language={language}
+          setLanguage={setLanguage}
+          onBack={goToRoleSelect}
+          onSendOtp={(mobile) => handleSendOtp(ROLES.BUYER, mobile)}
+        />
+      );
+
+    case "otp":
+      return (
+        <OTPVerification
+          language={language}
+          setLanguage={setLanguage}
+          themeClass={auth.pendingOtp?.role === ROLES.BUYER ? "buyer-theme" : "farmer-theme"}
+          onVerified={handleOtpVerified}
+          onChangeNumber={handleChangeNumber}
+        />
+      );
+
+    case "onboarding":
+      if (auth.role === ROLES.BUYER) {
+        return (
+          <BuyerOnboarding
+            language={language}
+            setLanguage={setLanguage}
+            mobile={auth.mobile}
+            onComplete={handleOnboardingComplete}
+          />
+        );
+      }
+      return (
+        <FarmerOnboarding
+          language={language}
+          setLanguage={setLanguage}
+          mobile={auth.mobile}
+          onComplete={handleOnboardingComplete}
+        />
+      );
+
+    case "dashboard":
+      // Guard: an authenticated session with a role mismatch or missing
+      // profile can never render the wrong dashboard — fall back safely.
+      if (!auth.isAuthenticated || !auth.hasProfile) {
+        return (
+          <RoleSelection
+            language={language}
+            setLanguage={setLanguage}
+            onSelectRole={handleSelectRole}
+          />
+        );
+      }
+
+      if (auth.role === ROLES.BUYER) {
+        return (
+          <BuyerDashboard
+            language={language}
+            setLanguage={setLanguage}
+            profile={auth.profile}
+            onLogout={handleLogout}
+          />
+        );
+      }
+
+      return <FarmerApp farmerProfile={auth.profile} onLogout={handleLogout} />;
+
+    default:
+      return null;
+  }
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
   );
 }
 

@@ -1617,3 +1617,344 @@ select, input { font-family: inherit; }
   .decision-metrics { grid-template-columns: 1fr; }
   .best-buyer-content { flex-direction: column; align-items: stretch; text-align: center; }
 }
+
+/* =========================================================
+   AUTH FLOW — role selection, login, OTP, onboarding
+   (extends the existing design tokens/system above)
+   ========================================================= */
+
+.auth-screen {
+  min-height: 100vh;
+  width: 100%;
+  background: var(--cream);
+  color: var(--charcoal);
+  font-family: "DM Sans", "Segoe UI", sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 48px;
+}
+
+.auth-topbar {
+  width: 100%;
+  max-width: 1180px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+}
+
+.auth-topbar .logo-text.small { font-family: "Manrope", sans-serif; font-weight: 800; color: var(--forest); }
+.auth-topbar .logo-text span, .role-select-hero h1 span { color: var(--green); }
+
+.link-button {
+  color: var(--forest);
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 6px 4px;
+}
+.link-button:hover { text-decoration: underline; }
+
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 36px 32px;
+  margin-top: 12px;
+}
+
+.role-select-card { max-width: 900px; text-align: center; }
+
+.role-select-hero h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--forest-dark);
+}
+.role-select-hero p { margin-top: 10px; color: var(--muted); font-size: 1.05rem; }
+
+.role-select-prompt { margin: 28px 0 20px; font-size: 1.15rem; color: var(--charcoal); }
+
+.role-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  text-align: left;
+}
+
+.role-option {
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  background: var(--white);
+  transition: border-color 0.2s ease, transform 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.role-option:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.role-option.farmer-role:hover { border-color: var(--green); }
+.role-option.buyer-role:hover { border-color: var(--terracotta); }
+
+.role-emoji { font-size: 2.4rem; }
+.role-title { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 1.2rem; color: var(--forest-dark); }
+.role-option ul { margin: 4px 0 0; padding-left: 18px; color: var(--muted); }
+.role-option li { margin-bottom: 4px; }
+
+.auth-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--forest-dark);
+  margin-bottom: 24px;
+}
+
+.field-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--charcoal);
+  margin: 16px 0 6px;
+}
+
+.auth-card input[type="text"],
+.auth-card input[type="tel"],
+.auth-card input[type="number"],
+.auth-card select {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--cream);
+  font-size: 1rem;
+  color: var(--charcoal);
+}
+.auth-card input:focus, .auth-card select:focus { outline: 2px solid var(--green); border-color: var(--green); }
+
+.mobile-input-row {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--cream);
+  overflow: hidden;
+}
+.mobile-input-row .country-code {
+  padding: 13px 12px;
+  font-weight: 700;
+  color: var(--muted);
+  border-right: 1.5px solid var(--border);
+}
+.mobile-input-row input {
+  border: none !important;
+  background: transparent !important;
+  flex: 1;
+}
+
+.field-error {
+  color: var(--terracotta);
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 26px;
+  justify-content: center;
+  padding: 15px;
+  font-size: 1rem;
+  border-radius: var(--radius-sm);
+}
+.auth-submit.is-loading { opacity: 0.75; cursor: wait; }
+
+.readonly-field {
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--green-light);
+  color: var(--forest-dark);
+  font-weight: 600;
+}
+
+.otp-subtitle { color: var(--muted); margin-bottom: 18px; }
+
+.demo-banner {
+  background: var(--wheat-light);
+  color: var(--forest-dark);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.demo-otp-reveal {
+  background: var(--green-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+.demo-otp-reveal strong { letter-spacing: 3px; font-size: 1.1rem; }
+
+.info-note { color: var(--green); font-size: 0.85rem; margin-bottom: 10px; }
+
+.otp-boxes {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.otp-box {
+  width: 100%;
+  aspect-ratio: 1;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--cream);
+}
+.otp-box:focus { outline: 2px solid var(--green); border-color: var(--green); }
+
+.otp-footer-actions { margin-top: 18px; text-align: center; }
+.resend-timer { color: var(--muted); font-size: 0.9rem; }
+
+.chip-select { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--cream);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+.chip-selected { background: var(--green); color: var(--white); border-color: var(--green); }
+
+.logout-button {
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  color: var(--charcoal);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+.logout-button:hover { border-color: var(--terracotta); color: var(--terracotta); }
+
+/* Buyer theme accents */
+.buyer-theme .role-select-prompt,
+.buyer-theme .auth-title { color: var(--terracotta); }
+.buyer-theme .auth-card input:focus,
+.buyer-theme .auth-card select:focus,
+.buyer-theme .otp-box:focus { outline-color: var(--terracotta); border-color: var(--terracotta); }
+.buyer-theme .chip-selected { background: var(--terracotta); border-color: var(--terracotta); }
+
+/* =========================================================
+   BUYER DASHBOARD
+   ========================================================= */
+
+.buyer-navbar .logo-mark.buyer-mark { background: var(--terracotta-light); }
+
+.buyer-hero {
+  padding: 36px 32px 20px;
+}
+.buyer-hero h1 { font-size: 1.8rem; color: var(--forest-dark); }
+.buyer-hero p { color: var(--muted); margin-top: 6px; }
+
+.buyer-stat-strip {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.buyer-stat { display: flex; flex-direction: column; gap: 2px; }
+.buyer-stat span { font-size: 0.8rem; color: var(--muted); }
+.buyer-stat strong { font-size: 1.3rem; color: var(--forest-dark); }
+.demo-tag {
+  background: var(--wheat-light);
+  color: var(--forest-dark);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.buyer-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.buyer-search {
+  width: 100%;
+  max-width: 420px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  font-size: 0.95rem;
+}
+
+.listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.listing-card {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.listing-card-top { display: flex; justify-content: space-between; align-items: center; }
+.listing-card h3 { font-size: 1.1rem; color: var(--forest-dark); }
+.listing-region, .listing-farmer { color: var(--muted); font-size: 0.85rem; }
+.listing-price-row { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; }
+.listing-price-row strong { font-size: 1.25rem; color: var(--forest-dark); }
+.listing-price-row span { color: var(--muted); font-size: 0.82rem; }
+.listing-meta-row { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--muted); }
+.listing-meta-row .positive { color: var(--green); font-weight: 700; }
+
+.save-toggle {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 4px 8px;
+}
+.save-toggle.saved { color: var(--wheat); }
+
+.secondary-button {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--terracotta);
+  color: var(--white);
+  font-weight: 700;
+  text-align: center;
+}
+.secondary-button:hover { background: var(--forest); }
+
+.empty-state { color: var(--muted); margin-top: 16px; }
+
+.profile-summary-card {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+  .role-options { grid-template-columns: 1fr; }
+  .auth-card { padding: 26px 20px; }
+  .otp-boxes { gap: 6px; }
+}

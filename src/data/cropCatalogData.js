@@ -4,7 +4,7 @@
  */
 
 export const CROP_PHOTOGRAPHY = {
-  Groundnut: "https://images.unsplash.com/photo-1567892320421-1c657571ea48?auto=format&fit=crop&w=600&q=80",
+  Groundnut: "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=800&q=80",
   Tomato: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80",
   Onion: "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&w=600&q=80",
   Rice: "https://images.unsplash.com/photo-1536657464919-892534f60d6e?auto=format&fit=crop&w=600&q=80",
@@ -105,11 +105,48 @@ export const CROP_METADATA = {
 
 /**
  * Image Priority Resolver
- * Hierarchy: Farmer Uploaded Photo -> Lot Photo -> Reference Crop Photo -> Clean Fallback
+ * Hierarchy: Farmer Uploaded Photo -> Exact Match -> Case Insensitive / Alias Match -> Groundnut Fallback
  */
 export function getCropImage(cropName, farmerPhotoUrl = null) {
   if (farmerPhotoUrl) return farmerPhotoUrl;
-  if (CROP_PHOTOGRAPHY[cropName]) return CROP_PHOTOGRAPHY[cropName];
-  return CROP_PHOTOGRAPHY["Groundnut"]; // Default fallback
+  if (!cropName) return CROP_PHOTOGRAPHY["Groundnut"];
+
+  const trimmed = String(cropName).trim();
+
+  // 1. Direct Match
+  if (CROP_PHOTOGRAPHY[trimmed]) return CROP_PHOTOGRAPHY[trimmed];
+
+  // 2. Case-Insensitive & Alias Match
+  const normalized = trimmed.toLowerCase();
+  if (normalized.includes("groundnut") || normalized.includes("peanut") || normalized.includes("పల్లీ") || normalized.includes("మూంగఫలీ")) {
+    return CROP_PHOTOGRAPHY["Groundnut"];
+  }
+  if (normalized.includes("tomato") || normalized.includes("టమాటా") || normalized.includes("टमाटर")) {
+    return CROP_PHOTOGRAPHY["Tomato"];
+  }
+  if (normalized.includes("onion") || normalized.includes("ఉల్లి") || normalized.includes("प्याज")) {
+    return CROP_PHOTOGRAPHY["Onion"];
+  }
+  if (normalized.includes("rice") || normalized.includes("paddy") || normalized.includes("వరి") || normalized.includes("चावल")) {
+    return CROP_PHOTOGRAPHY["Rice"];
+  }
+  if (normalized.includes("wheat") || normalized.includes("గోధుమ") || normalized.includes("गेहूं")) {
+    return CROP_PHOTOGRAPHY["Wheat"];
+  }
+  if (normalized.includes("cotton") || normalized.includes("పత్తి") || normalized.includes("कपास")) {
+    return CROP_PHOTOGRAPHY["Cotton"];
+  }
+  if (normalized.includes("turmeric") || normalized.includes("పసుపు") || normalized.includes("हल्दी")) {
+    return CROP_PHOTOGRAPHY["Turmeric"];
+  }
+
+  // Find in dictionary by case-insensitive key search
+  const foundKey = Object.keys(CROP_PHOTOGRAPHY).find(
+    (key) => key.toLowerCase() === normalized
+  );
+  if (foundKey) return CROP_PHOTOGRAPHY[foundKey];
+
+  // Default fallback
+  return CROP_PHOTOGRAPHY["Groundnut"];
 }
 
